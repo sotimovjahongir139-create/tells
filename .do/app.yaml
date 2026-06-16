@@ -1,0 +1,77 @@
+name: qongiroklar-holati
+region: fra
+
+# Route /api/* to backend, everything else to the frontend static site.
+ingress:
+  rules:
+    - component:
+        name: backend
+      match:
+        path:
+          prefix: /api
+    - component:
+        name: frontend
+      match:
+        path:
+          prefix: /
+
+services:
+  - name: backend
+    source_dir: /backend
+    github:
+      repo: sotimovjahongir139-create/tells
+      branch: main
+      deploy_on_push: true
+    run_command: node server.js
+    environment_slug: node-js
+    instance_count: 1
+    instance_size_slug: apps-s-1vcpu-0.5gb
+    http_port: 3000
+    envs:
+      - key: NODE_ENV
+        scope: RUN_TIME
+        value: production
+      - key: PORT
+        scope: RUN_TIME
+        value: "3000"
+      # --- AmoCRM ---
+      - key: AMOCRM_DOMAIN
+        scope: RUN_TIME
+        value: numbersarkon.amocrm.ru
+      - key: AMOCRM_TOKEN
+        scope: RUN_TIME
+        type: SECRET
+        value: ""              # set this in DO dashboard — never commit the real token
+      # --- SQL Server connection ---
+      - key: DB_SERVER
+        scope: RUN_TIME
+        value: localhost
+      - key: DB_PORT
+        scope: RUN_TIME
+        value: "1433"
+      - key: DB_NAME
+        scope: RUN_TIME
+        value: calldb2
+      - key: DB_TRUSTED
+        scope: RUN_TIME
+        value: "false"     # must be false on Linux / DO
+      - key: DB_USER
+        scope: RUN_TIME
+        value: ""
+      - key: DB_PASSWORD
+        scope: RUN_TIME
+        type: SECRET
+        value: ""
+      - key: DB_ENCRYPT
+        scope: RUN_TIME
+        value: "false"     # set to true for Azure SQL
+
+static_sites:
+  - name: frontend
+    source_dir: /frontend
+    github:
+      repo: sotimovjahongir139-create/tells
+      branch: main
+      deploy_on_push: true
+    environment_slug: html
+    # No build command needed — plain HTML/CSS/JS

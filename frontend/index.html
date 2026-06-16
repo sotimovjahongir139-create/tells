@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Qongiroklar Holati</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="app">
+
+    <header class="header">
+      <div class="header-inner">
+        <div class="header-brand">
+          <span class="header-icon">&#128222;</span>
+          <div>
+            <h1 class="header-title">Qongiroklar Holati</h1>
+            <p class="header-sub">Call Statistics Dashboard</p>
+          </div>
+        </div>
+        <button class="btn-refresh" id="btn-refresh" title="Refresh data">
+          <span class="refresh-icon" id="refresh-icon">&#8635;</span> Refresh
+        </button>
+      </div>
+    </header>
+
+    <main class="main">
+
+      <div class="controls-bar">
+        <nav class="tabs" role="tablist">
+          <button class="tab-btn active" data-tab="daily" role="tab" aria-selected="true">Daily</button>
+          <button class="tab-btn" data-tab="weekly" role="tab" aria-selected="false">Weekly</button>
+          <button class="tab-btn" data-tab="monthly" role="tab" aria-selected="false">Monthly</button>
+        </nav>
+
+        <div class="period-controls">
+          <div class="period-control" id="daily-period">
+            <label class="period-label" for="daily-date-select">Date</label>
+            <select class="period-select" id="daily-date-select">
+              <option value="">Latest</option>
+            </select>
+          </div>
+          <div class="period-control hidden" id="weekly-period">
+            <label class="period-label" for="weekly-week-select">Week</label>
+            <select class="period-select" id="weekly-week-select">
+              <option value="">Latest</option>
+            </select>
+          </div>
+          <div class="period-control hidden" id="monthly-period">
+            <label class="period-label" for="monthly-month-select">Month</label>
+            <select class="period-select" id="monthly-month-select">
+              <option value="">Latest</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="period-label-display" id="period-label-display"></div>
+
+      <div class="stats-grid" id="stats-grid">
+        <div class="state-card">
+          <div class="spinner"></div>
+          <p>Loading data&hellip;</p>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
