@@ -4,29 +4,25 @@ import sys
 import time
 import psycopg2
 from datetime import datetime, timedelta, timezone
-from urllib.parse import urlparse
 
-AMOCRM_DOMAIN   = os.getenv("AMOCRM_DOMAIN")
-AMOCRM_TOKEN    = os.getenv("AMOCRM_TOKEN")
-SUPABASE_URL    = os.getenv("SUPABASE_URL")
-SUPABASE_KEY    = os.getenv("SUPABASE_KEY")
-TARGET_MANAGERS = ["Asadbek"]
+AMOCRM_DOMAIN        = os.getenv("AMOCRM_DOMAIN")
+AMOCRM_TOKEN         = os.getenv("AMOCRM_TOKEN")
+SUPABASE_URL         = os.getenv("SUPABASE_URL")
+SUPABASE_DB_PASSWORD = os.getenv("SUPABASE_DB_PASSWORD")
+TARGET_MANAGERS      = ["Asadbek"]
 
-if not all([AMOCRM_DOMAIN, AMOCRM_TOKEN, SUPABASE_URL, SUPABASE_KEY]):
+if not all([AMOCRM_DOMAIN, AMOCRM_TOKEN, SUPABASE_URL, SUPABASE_DB_PASSWORD]):
     print("XATO: Environment variables topilmadi.")
     sys.exit(1)
 
-# Supabase PostgreSQL connection
 def get_db():
-    # supabase URL dan host ajratib olamiz
-    # Format: https://xxxx.supabase.co
     project_id = SUPABASE_URL.replace("https://", "").replace(".supabase.co", "")
     conn = psycopg2.connect(
-        host=f"aws-0-ap-southeast-2.pooler.supabase.com",
+        host="aws-0-ap-southeast-2.pooler.supabase.com",
         port=5432,
         dbname="postgres",
         user=f"postgres.{project_id}",
-        password=SUPABASE_KEY,
+        password=SUPABASE_DB_PASSWORD,
         sslmode="require"
     )
     return conn
@@ -311,7 +307,7 @@ def save_monthly(cur, stat_month, p_start, p_end, manager, s):
 
 def main():
     print("=" * 60)
-    print(f"  AMOCRM ETL → Supabase — {now.strftime('%d.%m.%Y %H:%M')}")
+    print(f"  AMOCRM ETL -> Supabase -- {now.strftime('%d.%m.%Y %H:%M')}")
     print("=" * 60)
 
     print("\n[1] Menejerlar...")
@@ -355,7 +351,7 @@ def main():
     cur.close()
     conn.close()
 
-    print("\n✓ TAYYOR!\n")
+    print("\nTAYYOR!\n")
 
 if __name__ == "__main__":
     main()
