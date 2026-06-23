@@ -1,3 +1,6 @@
+# PM2 (contains secrets — keep off git, manage on server directly)
+backend/ecosystem.config.js
+
 # Dependencies
 node_modules/
 .npm/
