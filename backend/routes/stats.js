@@ -25,8 +25,9 @@ function wrap(fn) {
     try {
       await fn(req, res);
     } catch (err) {
-      console.error(err.message);
-      res.status(500).json({ success: false, error: err.message });
+      const msg = err.message || err.code || String(err) || 'Unknown DB error';
+      console.error('Stats route error:', msg, err.stack);
+      res.status(500).json({ success: false, error: msg, code: err.code });
     }
   };
 }
