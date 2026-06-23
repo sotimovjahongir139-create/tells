@@ -1,0 +1,32 @@
+name: Commit node_modules
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deps:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install production deps
+        run: npm install --omit=dev
+
+      - name: Commit node_modules if changed
+        run: |
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config user.name "github-actions[bot]"
+          git add -f node_modules/
+          if git diff --staged --quiet; then
+            echo "node_modules unchanged"
+          else
+            git commit -m "chore: update node_modules [skip ci]"
+            git push
+          fi
