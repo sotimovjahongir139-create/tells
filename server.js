@@ -1,8 +1,8 @@
 'use strict';
 require('dotenv').config();
 
-process.env.DATABASE_URL = process.env.DATABASE_URL ||
-  'postgresql://postgres.lqdcrnxrqzccismdrwwb:arkon08_trello%23jg%249@aws-0-ap-southeast-2.pooler.supabase.com:5432/postgres';
+// Always force the pooler URL — old pm2 env vars must not win
+process.env.DATABASE_URL = 'postgresql://postgres.lqdcrnxrqzccismdrwwb:arkon08_trello%23jg%249@aws-0-ap-southeast-2.pooler.supabase.com:5432/postgres';
 
 const express = require('express');
 const { Pool }  = require('pg');
@@ -65,6 +65,8 @@ async function initDb() {
 // ─── Express ──────────────────────────────────────────────────────────────────
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
+
+app.get('/version', (_req, res) => res.json({ v: '2.1', started: new Date().toISOString() }));
 
 app.get('/health', async (_req, res) => {
   try { await pool.query('SELECT 1'); res.json({ status: 'ok' }); }
