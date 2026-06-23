@@ -1,5 +1,5 @@
 require('dotenv').config();
-process.env.DATABASE_URL = process.env.DATABASE_URL || 'postgresql://postgres:arkon08_trello%23jg%249@db.lqdcrnxrqzccismdrwwb.supabase.co:5432/postgres';
+process.env.DATABASE_URL = process.env.DATABASE_URL || 'postgresql://postgres.lqdcrnxrqzccismdrwwb:arkon08_trello%23jg%249@aws-0-ap-southeast-2.pooler.supabase.com:5432/postgres';
 const express = require('express');
 const cors = require('cors');
 const { Pool } = require('pg');
