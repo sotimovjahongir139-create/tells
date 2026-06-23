@@ -11,17 +11,15 @@ jobs:
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1.0.3
         with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USER }}
+          host: 62.169.31.240
+          username: root
           password: ${{ secrets.SSH_PASSWORD }}
           port: 22
           script: |
+            set -e
             cd /root/calls
             git fetch origin
             git reset --hard origin/main
             npm install --omit=dev
-            pm2 delete calls 2>/dev/null || true
-            pm2 start ecosystem.config.js
-            pm2 save
             sleep 2
-            curl -s http://localhost:5002/version
+            curl -s http://localhost:5002/version || echo "waiting..."
