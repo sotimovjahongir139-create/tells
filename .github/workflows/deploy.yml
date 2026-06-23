@@ -17,9 +17,20 @@ jobs:
           port: 22
           script: |
             set -e
+            # Ensure nvm/node/pm2 are in PATH for non-login shells
+            export NVM_DIR="$HOME/.nvm"
+            [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
+            export PATH="$PATH:/usr/local/bin:/usr/bin:/root/.local/bin"
+
             cd /root/calls
             git fetch origin
             git reset --hard origin/main
             npm install --omit=dev
-            sleep 2
-            curl -s http://localhost:5002/version || echo "waiting..."
+
+            # Force-restart with correct config (delete then start, not restart)
+            pm2 delete calls 2>/dev/null || true
+            pm2 start ecosystem.config.js
+            pm2 save
+
+            sleep 3
+            curl -sf http://localhost:5002/version
