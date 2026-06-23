@@ -4,7 +4,8 @@
   "private": true,
   "scripts": {
     "start": "node server.js",
-    "dev":   "node server.js"
+    "dev":   "node server.js",
+    "postinstall": "node scripts/pm2-restart.js || true"
   },
   "dependencies": {
     "dotenv":   "^16.4.5",
