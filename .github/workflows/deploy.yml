@@ -33,4 +33,4 @@ jobs:
             pm2 save
 
             sleep 3
-            curl -sf http://localhost:5002/version
+            curl -sf http://localhost:5002/version || curl -sf http://localhost:3000/version

@@ -352,8 +352,14 @@ app.post('/api/sync', async (req, res) => {
 app.get('*', (_req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
 
 // ─── Start ────────────────────────────────────────────────────────────────────
+// Listen on PORT (5002) and also port 3000 — covers nginx configs set up for
+// Next.js defaults without needing to know the exact proxy_pass port.
 app.listen(PORT, () => {
   console.log(`Calls dashboard on :${PORT}`);
   console.log(`DATABASE_URL: ${(process.env.DATABASE_URL || '').slice(0, 60)}...`);
-  initDb().catch(err => console.error('DB init warning (tables may already exist):', err.message));
+  initDb().catch(err => console.error('DB init warning:', err.message));
 });
+
+const ALT_PORT = PORT === 3000 ? 5002 : 3000;
+app.listen(ALT_PORT, () => console.log(`Alt listener on :${ALT_PORT}`))
+   .on('error', () => console.log(`Alt port ${ALT_PORT} busy, skipping`));
