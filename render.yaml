@@ -9,14 +9,10 @@ services:
     envVars:
       - key: NODE_ENV
         value: production
+      - key: DATABASE_URL
+        value: postgresql://postgres:arkon08_trello%23jg%249@db.lqdcrnxrqzccismdrwwb.supabase.co:5432/postgres
       - key: AMOCRM_DOMAIN
         value: numbersarkon.amocrm.ru
-      - key: DATABASE_URL
-        sync: false
-      - key: SUPABASE_URL
-        sync: false
-      - key: SUPABASE_DB_PASSWORD
-        sync: false
       - key: AMOCRM_TOKEN
         sync: false
 
