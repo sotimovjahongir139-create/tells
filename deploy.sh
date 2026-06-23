@@ -1,24 +1,12 @@
 #!/bin/bash
 set -e
-
-APP_DIR="/root/calls"
-cd "$APP_DIR"
-
+cd "$(dirname "$0")"
 echo "==> git pull"
 git pull origin main
-
 echo "==> npm install"
-npm install
-
-echo "==> prisma generate + db push"
-npx prisma generate
-npx prisma db push --accept-data-loss
-
-echo "==> npm build"
-npm run build
-
+npm install --omit=dev
 echo "==> pm2 restart"
-pm2 restart calls 2>/dev/null || pm2 start ecosystem.config.js
-
+pm2 delete calls 2>/dev/null || true
+pm2 start ecosystem.config.js
 pm2 save
-echo "==> Done"
+echo "==> Done — app on :5002"

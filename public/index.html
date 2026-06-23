@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Qo'ng'iroqlar Holati</title>
+<link rel="stylesheet" href="style.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+<div id="app">
+  <header>
+    <div>
+      <h1>Qo'ng'iroqlar Holati</h1>
+      <p id="period-label" class="period-label"></p>
+    </div>
+    <div id="sync-wrap"></div>
+  </header>
+
+  <nav class="tabs">
+    <button class="tab active" data-period="daily">Kunlik</button>
+    <button class="tab" data-period="weekly">Haftalik</button>
+    <button class="tab" data-period="monthly">Oylik</button>
+  </nav>
+
+  <div id="no-data" class="hidden">Ma'lumot mavjud emas. Sinxronizatsiya tugmasini bosing.</div>
+
+  <div id="content" class="hidden">
+    <div id="main-cards" class="cards"></div>
+    <div id="gauges" class="gauges"></div>
+    <div class="card" id="chart-card">
+      <h3>Soatlik taqsimot</h3>
+      <canvas id="hour-chart" height="100"></canvas>
+    </div>
+  </div>
+</div>
+<script src="app.js"></script>
+</body>
+</html>
