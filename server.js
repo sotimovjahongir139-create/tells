@@ -17,53 +17,48 @@ const AMO_TOKEN        = process.env.AMOCRM_TOKEN   || '';
 const TARGET_MANAGERS  = (process.env.TARGET_MANAGERS || 'Asadbek').split(',').map(s => s.trim()).filter(Boolean);
 const SYNC_SECRET      = process.env.SYNC_SECRET    || '';
 
-const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: { rejectUnauthorized: false },
+  max: 5,
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 10000,
+});
 
 // ─── DB init (creates tables if missing) ─────────────────────────────────────
 async function initDb() {
   const cols = `
-    total_calls        INT DEFAULT 0,
-    incoming_answered  INT DEFAULT 0,
-    outgoing_answered  INT DEFAULT 0,
-    missed_clients     INT DEFAULT 0,
-    recalled_clients   INT DEFAULT 0,
-    not_recalled_clients INT DEFAULT 0,
-    answer_rate        FLOAT DEFAULT 0,
-    recall_rate        FLOAT DEFAULT 0,
-    no_recall_pct      FLOAT DEFAULT 0,
-    avg_recall_minutes FLOAT DEFAULT 0,
+    total_calls INT DEFAULT 0, incoming_answered INT DEFAULT 0,
+    outgoing_answered INT DEFAULT 0, missed_clients INT DEFAULT 0,
+    recalled_clients INT DEFAULT 0, not_recalled_clients INT DEFAULT 0,
+    answer_rate FLOAT DEFAULT 0, recall_rate FLOAT DEFAULT 0,
+    no_recall_pct FLOAT DEFAULT 0, avg_recall_minutes FLOAT DEFAULT 0,
     h_09_11 INT DEFAULT 0, h_11_13 INT DEFAULT 0, h_13_15 INT DEFAULT 0,
     h_15_17 INT DEFAULT 0, h_17_19 INT DEFAULT 0, h_19_21 INT DEFAULT 0,
     h_21_23 INT DEFAULT 0,
-    created_at TIMESTAMPTZ DEFAULT NOW(),
-    updated_at TIMESTAMPTZ DEFAULT NOW()
+    created_at TIMESTAMPTZ DEFAULT NOW(), updated_at TIMESTAMPTZ DEFAULT NOW()
   `;
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS amo_call_daily_stats (
-      id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::TEXT,
-      stat_date DATE NOT NULL, manager_name TEXT NOT NULL,
-      ${cols}, UNIQUE(stat_date, manager_name)
-    );
-    CREATE TABLE IF NOT EXISTS amo_call_weekly_stats (
-      id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::TEXT,
-      week_start DATE NOT NULL, manager_name TEXT NOT NULL,
-      ${cols}, UNIQUE(week_start, manager_name)
-    );
-    CREATE TABLE IF NOT EXISTS amo_call_monthly_stats (
-      id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::TEXT,
-      month_start DATE NOT NULL, manager_name TEXT NOT NULL,
-      ${cols}, UNIQUE(month_start, manager_name)
-    );
-    CREATE TABLE IF NOT EXISTS amo_sync_logs (
-      id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::TEXT,
-      synced_at  TIMESTAMPTZ DEFAULT NOW(),
-      status     TEXT NOT NULL,
-      manager    TEXT,
-      events_count INT,
-      duration_ms  INT,
-      error_msg    TEXT
-    );
-  `);
+  // Split into separate queries — PgBouncer doesn't support multi-statement
+  await pool.query(`CREATE TABLE IF NOT EXISTS amo_call_daily_stats (
+    id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::TEXT,
+    stat_date DATE NOT NULL, manager_name TEXT NOT NULL,
+    ${cols}, UNIQUE(stat_date, manager_name)
+  )`);
+  await pool.query(`CREATE TABLE IF NOT EXISTS amo_call_weekly_stats (
+    id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::TEXT,
+    week_start DATE NOT NULL, manager_name TEXT NOT NULL,
+    ${cols}, UNIQUE(week_start, manager_name)
+  )`);
+  await pool.query(`CREATE TABLE IF NOT EXISTS amo_call_monthly_stats (
+    id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::TEXT,
+    month_start DATE NOT NULL, manager_name TEXT NOT NULL,
+    ${cols}, UNIQUE(month_start, manager_name)
+  )`);
+  await pool.query(`CREATE TABLE IF NOT EXISTS amo_sync_logs (
+    id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::TEXT,
+    synced_at TIMESTAMPTZ DEFAULT NOW(), status TEXT NOT NULL,
+    manager TEXT, events_count INT, duration_ms INT, error_msg TEXT
+  )`);
   console.log('DB ready');
 }
 
@@ -355,6 +350,8 @@ app.post('/api/sync', async (req, res) => {
 app.get('*', (_req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
 
 // ─── Start ────────────────────────────────────────────────────────────────────
-initDb()
-  .then(() => app.listen(PORT, () => console.log(`Calls dashboard on :${PORT}`)))
-  .catch(err => { console.error('Startup error:', err.message); process.exit(1); });
+app.listen(PORT, () => {
+  console.log(`Calls dashboard on :${PORT}`);
+  console.log(`DATABASE_URL: ${(process.env.DATABASE_URL || '').slice(0, 60)}...`);
+  initDb().catch(err => console.error('DB init warning (tables may already exist):', err.message));
+});
