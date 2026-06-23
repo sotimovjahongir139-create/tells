@@ -1,0 +1,27 @@
+services:
+  - type: web
+    name: calls-backend
+    runtime: node
+    rootDir: backend
+    buildCommand: npm install
+    startCommand: node server.js
+    plan: free
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: AMOCRM_DOMAIN
+        value: numbersarkon.amocrm.ru
+      - key: DATABASE_URL
+        sync: false   # Render will prompt for this value once on first deploy — never stored in git
+      - key: AMOCRM_TOKEN
+        sync: false   # Same — prompt on deploy
+
+  - type: static
+    name: calls-frontend
+    rootDir: frontend
+    buildCommand: ""
+    staticPublishPath: .
+    routes:
+      - type: rewrite
+        source: /api/*
+        destination: https://calls-backend.onrender.com/api/*
