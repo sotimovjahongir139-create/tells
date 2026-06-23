@@ -1,0 +1,111 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model AmoCallDailyStat {
+  id                String   @id @default(cuid())
+  statDate          DateTime @db.Date @map("stat_date")
+  managerName       String   @map("manager_name")
+  totalCalls        Int      @default(0) @map("total_calls")
+  incomingAnswered  Int      @default(0) @map("incoming_answered")
+  outgoingAnswered  Int      @default(0) @map("outgoing_answered")
+  missedClients     Int      @default(0) @map("missed_clients")
+  recalledClients   Int      @default(0) @map("recalled_clients")
+  notRecalledClients Int     @default(0) @map("not_recalled_clients")
+  answerRate        Float    @default(0) @map("answer_rate")
+  recallRate        Float    @default(0) @map("recall_rate")
+  noRecallPct       Float    @default(0) @map("no_recall_pct")
+  avgRecallMinutes  Float    @default(0) @map("avg_recall_minutes")
+  h0911             Int      @default(0) @map("h_09_11")
+  h1113             Int      @default(0) @map("h_11_13")
+  h1315             Int      @default(0) @map("h_13_15")
+  h1517             Int      @default(0) @map("h_15_17")
+  h1719             Int      @default(0) @map("h_17_19")
+  h1921             Int      @default(0) @map("h_19_21")
+  h2123             Int      @default(0) @map("h_21_23")
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  @@unique([statDate, managerName])
+  @@index([statDate])
+  @@index([managerName])
+  @@map("amo_call_daily_stats")
+}
+
+model AmoCallWeeklyStat {
+  id                String   @id @default(cuid())
+  weekStart         DateTime @db.Date @map("week_start")
+  managerName       String   @map("manager_name")
+  totalCalls        Int      @default(0) @map("total_calls")
+  incomingAnswered  Int      @default(0) @map("incoming_answered")
+  outgoingAnswered  Int      @default(0) @map("outgoing_answered")
+  missedClients     Int      @default(0) @map("missed_clients")
+  recalledClients   Int      @default(0) @map("recalled_clients")
+  notRecalledClients Int     @default(0) @map("not_recalled_clients")
+  answerRate        Float    @default(0) @map("answer_rate")
+  recallRate        Float    @default(0) @map("recall_rate")
+  noRecallPct       Float    @default(0) @map("no_recall_pct")
+  avgRecallMinutes  Float    @default(0) @map("avg_recall_minutes")
+  h0911             Int      @default(0) @map("h_09_11")
+  h1113             Int      @default(0) @map("h_11_13")
+  h1315             Int      @default(0) @map("h_13_15")
+  h1517             Int      @default(0) @map("h_15_17")
+  h1719             Int      @default(0) @map("h_17_19")
+  h1921             Int      @default(0) @map("h_19_21")
+  h2123             Int      @default(0) @map("h_21_23")
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  @@unique([weekStart, managerName])
+  @@index([weekStart])
+  @@index([managerName])
+  @@map("amo_call_weekly_stats")
+}
+
+model AmoCallMonthlyStat {
+  id                String   @id @default(cuid())
+  monthStart        DateTime @db.Date @map("month_start")
+  managerName       String   @map("manager_name")
+  totalCalls        Int      @default(0) @map("total_calls")
+  incomingAnswered  Int      @default(0) @map("incoming_answered")
+  outgoingAnswered  Int      @default(0) @map("outgoing_answered")
+  missedClients     Int      @default(0) @map("missed_clients")
+  recalledClients   Int      @default(0) @map("recalled_clients")
+  notRecalledClients Int     @default(0) @map("not_recalled_clients")
+  answerRate        Float    @default(0) @map("answer_rate")
+  recallRate        Float    @default(0) @map("recall_rate")
+  noRecallPct       Float    @default(0) @map("no_recall_pct")
+  avgRecallMinutes  Float    @default(0) @map("avg_recall_minutes")
+  h0911             Int      @default(0) @map("h_09_11")
+  h1113             Int      @default(0) @map("h_11_13")
+  h1315             Int      @default(0) @map("h_13_15")
+  h1517             Int      @default(0) @map("h_15_17")
+  h1719             Int      @default(0) @map("h_17_19")
+  h1921             Int      @default(0) @map("h_19_21")
+  h2123             Int      @default(0) @map("h_21_23")
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  @@unique([monthStart, managerName])
+  @@index([monthStart])
+  @@index([managerName])
+  @@map("amo_call_monthly_stats")
+}
+
+model AmoSyncLog {
+  id          String   @id @default(cuid())
+  syncedAt    DateTime @default(now()) @map("synced_at")
+  status      String
+  manager     String?
+  eventsCount Int?     @map("events_count")
+  durationMs  Int?     @map("duration_ms")
+  errorMsg    String?  @map("error_msg")
+
+  @@index([syncedAt])
+  @@map("amo_sync_logs")
+}
