@@ -3,8 +3,17 @@ const { Pool } = require('pg');
 
 const router = express.Router();
 
+function resolveConnectionString() {
+  if (process.env.DATABASE_URL) return process.env.DATABASE_URL;
+  // Build from individual Supabase secrets when DATABASE_URL is not set
+  const supabaseUrl = (process.env.SUPABASE_URL || '').replace('https://', '').replace('.supabase.co', '');
+  const password    = process.env.SUPABASE_DB_PASSWORD || '';
+  if (!supabaseUrl || !password) return null;
+  return `postgresql://postgres:${encodeURIComponent(password)}@db.${supabaseUrl}.supabase.co:5432/postgres`;
+}
+
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
+  connectionString: resolveConnectionString(),
   ssl: { rejectUnauthorized: false },
   max: 10,
   idleTimeoutMillis: 30000,

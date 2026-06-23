@@ -12,9 +12,13 @@ services:
       - key: AMOCRM_DOMAIN
         value: numbersarkon.amocrm.ru
       - key: DATABASE_URL
-        sync: false   # Render will prompt for this value once on first deploy — never stored in git
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_DB_PASSWORD
+        sync: false
       - key: AMOCRM_TOKEN
-        sync: false   # Same — prompt on deploy
+        sync: false
 
   - type: static
     name: calls-frontend

@@ -10,27 +10,32 @@ const PORT = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
 
-/* health — tests live DB connection so we can see the real error */
+function resolveConnectionString() {
+  if (process.env.DATABASE_URL) return process.env.DATABASE_URL;
+  const supabaseUrl = (process.env.SUPABASE_URL || '').replace('https://', '').replace('.supabase.co', '');
+  const password    = process.env.SUPABASE_DB_PASSWORD || '';
+  if (!supabaseUrl || !password) return null;
+  return `postgresql://postgres:${encodeURIComponent(password)}@db.${supabaseUrl}.supabase.co:5432/postgres`;
+}
+
+/* health — tests live DB connection */
 app.get('/api/health', async (_req, res) => {
-  const dbUrl = process.env.DATABASE_URL;
-  if (!dbUrl) {
-    return res.status(500).json({ status: 'error', db: 'DATABASE_URL not set' });
+  const connStr = resolveConnectionString();
+  const envStatus = {
+    DATABASE_URL:        !!process.env.DATABASE_URL,
+    SUPABASE_URL:        !!process.env.SUPABASE_URL,
+    SUPABASE_DB_PASSWORD:!!process.env.SUPABASE_DB_PASSWORD,
+  };
+  if (!connStr) {
+    return res.status(500).json({ status: 'error', db: 'no connection string — set DATABASE_URL or SUPABASE_URL+SUPABASE_DB_PASSWORD', env: envStatus });
   }
   try {
-    const pool = new Pool({
-      connectionString: dbUrl,
-      ssl: { rejectUnauthorized: false },
-      connectionTimeoutMillis: 5000,
-    });
+    const pool = new Pool({ connectionString: connStr, ssl: { rejectUnauthorized: false }, connectionTimeoutMillis: 5000 });
     await pool.query('SELECT 1');
     await pool.end();
-    res.json({ status: 'ok', db: 'connected', timestamp: new Date().toISOString() });
+    res.json({ status: 'ok', db: 'connected', env: envStatus, timestamp: new Date().toISOString() });
   } catch (err) {
-    res.status(500).json({
-      status: 'error',
-      db: err.message || err.code || String(err),
-      code: err.code,
-    });
+    res.status(500).json({ status: 'error', db: err.message || err.code || String(err), env: envStatus });
   }
 });
 
