@@ -1,0 +1,27 @@
+name: Deploy to VPS
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          password: ${{ secrets.SSH_PASSWORD }}
+          port: 22
+          script: |
+            cd /root/calls
+            git fetch origin
+            git reset --hard origin/main
+            npm install --omit=dev
+            pm2 delete calls 2>/dev/null || true
+            pm2 start ecosystem.config.js
+            pm2 save
+            sleep 2
+            curl -s http://localhost:5002/version
