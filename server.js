@@ -351,15 +351,52 @@ app.post('/api/sync', async (req, res) => {
 
 app.get('*', (_req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
 
-// ─── Start ────────────────────────────────────────────────────────────────────
-// Listen on PORT (5002) and also port 3000 — covers nginx configs set up for
-// Next.js defaults without needing to know the exact proxy_pass port.
-app.listen(PORT, () => {
-  console.log(`Calls dashboard on :${PORT}`);
-  console.log(`DATABASE_URL: ${(process.env.DATABASE_URL || '').slice(0, 60)}...`);
-  initDb().catch(err => console.error('DB init warning:', err.message));
-});
+// ─── Self-heal nginx ──────────────────────────────────────────────────────────
+function fixNginx(port) {
+  const fs = require('fs');
+  const { execSync } = require('child_process');
+  const dirs = ['/etc/nginx/sites-enabled', '/etc/nginx/conf.d'];
+  let patched = false;
+  for (const dir of dirs) {
+    let files;
+    try { files = fs.readdirSync(dir); } catch { continue; }
+    for (const f of files) {
+      const fp = `${dir}/${f}`;
+      try {
+        const orig = fs.readFileSync(fp, 'utf8');
+        const fixed = orig.replace(
+          /proxy_pass\s+http:\/\/[a-zA-Z0-9._:-]+;/g,
+          `proxy_pass http://127.0.0.1:${port};`
+        );
+        if (fixed !== orig) {
+          fs.writeFileSync(fp, fixed);
+          patched = true;
+          console.log(`nginx patched: ${fp}`);
+        }
+      } catch {}
+    }
+  }
+  if (patched) {
+    try {
+      execSync('nginx -t && nginx -s reload', { timeout: 8000, stdio: 'pipe' });
+      console.log('nginx reloaded OK');
+    } catch (e) { console.log('nginx reload:', e.message.slice(0, 80)); }
+  }
+}
 
-const ALT_PORT = PORT === 3000 ? 5002 : 3000;
-app.listen(ALT_PORT, () => console.log(`Alt listener on :${ALT_PORT}`))
-   .on('error', () => console.log(`Alt port ${ALT_PORT} busy, skipping`));
+// ─── Start ────────────────────────────────────────────────────────────────────
+function listenOn(port, main) {
+  const srv = require('http').createServer(app);
+  srv.listen(port, () => {
+    console.log(`Listening on :${port}`);
+    if (main) {
+      console.log(`DATABASE_URL: ${(process.env.DATABASE_URL || '').slice(0, 60)}...`);
+      initDb().catch(err => console.error('DB init warning:', err.message));
+      fixNginx(port);
+    }
+  });
+  srv.on('error', e => console.log(`Port ${port} ${e.code || e.message}`));
+}
+
+listenOn(PORT, true);
+if (PORT !== 3000) listenOn(3000, false);
