@@ -22,14 +22,14 @@ jobs:
       - name: Install production deps
         run: npm install --omit=dev
 
-      - name: Commit node_modules if changed
+      - name: Commit and push to trigger server autodeploy
         run: |
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git config user.name "github-actions[bot]"
           git add -f node_modules/
           if git diff --staged --quiet; then
-            echo "node_modules unchanged"
+            git commit --allow-empty -m "chore: trigger deploy [skip ci]"
           else
             git commit -m "chore: update node_modules [skip ci]"
-            git push
           fi
+          git push
