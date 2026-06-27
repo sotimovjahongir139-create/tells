@@ -338,8 +338,8 @@ async function runSync() {
 
   const dur = Date.now() - t0;
   await pool.query(
-    `INSERT INTO amo_sync_logs (synced_at,status,manager,events_count,duration_ms)
-     VALUES (NOW(),'success',$1,$2,$3)`,
+    `INSERT INTO amo_sync_logs (id,synced_at,status,manager,events_count,duration_ms)
+     VALUES (gen_random_uuid()::text,NOW(),'success',$1,$2,$3)`,
     [Object.values(targetIds)[0], events.length, dur]
   );
   return { eventsCount: events.length, managers: Object.values(targetIds), durationMs: dur };
@@ -354,8 +354,8 @@ app.post('/api/sync', async (req, res) => {
   } catch (e) {
     const msg = e.message || String(e);
     pool.query(
-      `INSERT INTO amo_sync_logs (synced_at,status,error_msg,duration_ms)
-       VALUES (NOW(),'error',$1,$2)`,
+      `INSERT INTO amo_sync_logs (id,synced_at,status,error_msg,duration_ms)
+       VALUES (gen_random_uuid()::text,NOW(),'error',$1,$2)`,
       [msg, 0]
     ).catch(() => {});
     res.status(500).json({ error: msg });
