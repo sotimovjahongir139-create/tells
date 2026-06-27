@@ -26,7 +26,7 @@ h1 { font-size: 1.5rem; font-weight: 700; }
 .period-label { font-size: 0.8rem; color: #9ca3af; margin-top: 0.2rem; min-height: 1em; }
 
 /* Sync */
-#sync-wrap { display: flex; flex-direction: column; align-items: flex-end; gap: 0.4rem; }
+#sync-wrap { display: none !important; }
 .sync-row { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; justify-content: flex-end; }
 .sync-time { font-size: 0.75rem; color: #d1d5db; }
 .badge { padding: 0.1rem 0.45rem; border-radius: 9999px; font-size: 0.7rem; font-weight: 600; }

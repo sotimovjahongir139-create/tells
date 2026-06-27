@@ -154,6 +154,24 @@ async function render(period) {
   const maxVal = Math.max(...values, 1);
   const colors = values.map(v => v === maxVal ? '#f59e0b' : '#3b82f6');
 
+  const datalabelsPlugin = {
+    id: 'barDatalabels',
+    afterDatasetsDraw(chart) {
+      const ctx = chart.ctx;
+      chart.data.datasets.forEach((dataset, i) => {
+        chart.getDatasetMeta(i).data.forEach((bar, j) => {
+          const val = dataset.data[j];
+          if (!val) return;
+          ctx.fillStyle = '#e5e7eb';
+          ctx.font = 'bold 11px sans-serif';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'bottom';
+          ctx.fillText(val, bar.x, bar.y - 3);
+        });
+      });
+    },
+  };
+
   if (hourChart) hourChart.destroy();
   hourChart = new Chart(document.getElementById('hour-chart'), {
     type: 'bar',
@@ -172,6 +190,7 @@ async function render(period) {
         y: { grid: { color: '#1f2937' }, ticks: { color: '#9ca3af', font: { size: 11 } } },
       },
     },
+    plugins: [datalabelsPlugin],
   });
 }
 
