@@ -37,22 +37,19 @@ async function initDb() {
   `;
   // Split into separate queries — PgBouncer doesn't support multi-statement
   await pool.query(`CREATE TABLE IF NOT EXISTS amo_call_daily_stats (
-    id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::TEXT,
     stat_date DATE NOT NULL, manager_name TEXT NOT NULL,
-    ${cols}, UNIQUE(stat_date, manager_name)
+    ${cols}, PRIMARY KEY (stat_date, manager_name)
   )`);
   await pool.query(`CREATE TABLE IF NOT EXISTS amo_call_weekly_stats (
-    id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::TEXT,
     week_start DATE NOT NULL, manager_name TEXT NOT NULL,
-    ${cols}, UNIQUE(week_start, manager_name)
+    ${cols}, PRIMARY KEY (week_start, manager_name)
   )`);
   await pool.query(`CREATE TABLE IF NOT EXISTS amo_call_monthly_stats (
-    id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::TEXT,
     month_start DATE NOT NULL, manager_name TEXT NOT NULL,
-    ${cols}, UNIQUE(month_start, manager_name)
+    ${cols}, PRIMARY KEY (month_start, manager_name)
   )`);
   await pool.query(`CREATE TABLE IF NOT EXISTS amo_sync_logs (
-    id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::TEXT,
+    id BIGSERIAL PRIMARY KEY,
     synced_at TIMESTAMPTZ DEFAULT NOW(), status TEXT NOT NULL,
     manager TEXT, events_count INT, duration_ms INT, error_msg TEXT
   )`);
@@ -254,13 +251,13 @@ async function upsert(table, uniqueCol, uniqueVal, managerName, st) {
   const h = st.hours;
   await pool.query(`
     INSERT INTO ${table}
-      (id, ${uniqueCol}, manager_name,
+      (${uniqueCol}, manager_name,
        total_calls, incoming_answered, outgoing_answered,
        missed_clients, recalled_clients, not_recalled_clients,
        answer_rate, recall_rate, no_recall_pct, avg_recall_minutes,
        h_09_11, h_11_13, h_13_15, h_15_17, h_17_19, h_19_21, h_21_23,
        created_at, updated_at)
-    VALUES (gen_random_uuid()::TEXT,$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,
+    VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,
             $13,$14,$15,$16,$17,$18,$19,NOW(),NOW())
     ON CONFLICT (${uniqueCol}, manager_name) DO UPDATE SET
       total_calls=$3, incoming_answered=$4, outgoing_answered=$5,
@@ -322,8 +319,8 @@ async function runSync() {
 
   const dur = Date.now() - t0;
   await pool.query(
-    `INSERT INTO amo_sync_logs (id,synced_at,status,manager,events_count,duration_ms)
-     VALUES (gen_random_uuid()::TEXT,NOW(),'success',$1,$2,$3)`,
+    `INSERT INTO amo_sync_logs (synced_at,status,manager,events_count,duration_ms)
+     VALUES (NOW(),'success',$1,$2,$3)`,
     [Object.values(targetIds)[0], events.length, dur]
   );
   return { eventsCount: events.length, managers: Object.values(targetIds), durationMs: dur };
@@ -338,8 +335,8 @@ app.post('/api/sync', async (req, res) => {
   } catch (e) {
     const msg = e.message || String(e);
     pool.query(
-      `INSERT INTO amo_sync_logs (id,synced_at,status,error_msg,duration_ms)
-       VALUES (gen_random_uuid()::TEXT,NOW(),'error',$1,$2)`,
+      `INSERT INTO amo_sync_logs (synced_at,status,error_msg,duration_ms)
+       VALUES (NOW(),'error',$1,$2)`,
       [msg, 0]
     ).catch(() => {});
     res.status(500).json({ error: msg });
