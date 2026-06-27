@@ -250,15 +250,19 @@ def upsert_daily(cur, stat_date, manager_name, st):
 
 def upsert_weekly(cur, week_start, manager_name, st):
     h = st["hours"]
+    week_end = week_start + timedelta(days=6)
     cur.execute("""
         INSERT INTO amo_call_weekly_stats
-            (stat_date, manager_name, total_calls, incoming_answered, outgoing_answered,
+            (stat_week, manager_name, period_start, period_end,
+             total_calls, incoming_answered, outgoing_answered,
              missed_clients, recalled_clients, not_recalled_clients,
              answer_rate, recall_rate, no_recall_pct, avg_recall_minutes,
              h_09_11, h_11_13, h_13_15, h_15_17, h_17_19, h_19_21, h_21_23)
         VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
-                %s, %s, %s, %s, %s, %s, %s)
-        ON CONFLICT (stat_date, manager_name) DO UPDATE SET
+                %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        ON CONFLICT (stat_week, manager_name) DO UPDATE SET
+            period_start = EXCLUDED.period_start,
+            period_end = EXCLUDED.period_end,
             total_calls = EXCLUDED.total_calls,
             incoming_answered = EXCLUDED.incoming_answered,
             outgoing_answered = EXCLUDED.outgoing_answered,
@@ -274,7 +278,7 @@ def upsert_weekly(cur, week_start, manager_name, st):
             h_17_19 = EXCLUDED.h_17_19, h_19_21 = EXCLUDED.h_19_21,
             h_21_23 = EXCLUDED.h_21_23
     """, (
-        week_start, manager_name,
+        week_start, manager_name, week_start, week_end,
         st["total"], st["incoming"], st["outgoing"],
         st["missed"], st["recalled"], st["not_recalled"],
         st["answer_rate"], st["recall_rate"], st["no_recall_pct"], st["avg_recall_minutes"],
@@ -286,15 +290,19 @@ def upsert_weekly(cur, week_start, manager_name, st):
 
 def upsert_monthly(cur, month_start, manager_name, st):
     h = st["hours"]
+    month_end = (month_start + timedelta(days=32)).replace(day=1) - timedelta(days=1)
     cur.execute("""
         INSERT INTO amo_call_monthly_stats
-            (stat_date, manager_name, total_calls, incoming_answered, outgoing_answered,
+            (stat_month, manager_name, period_start, period_end,
+             total_calls, incoming_answered, outgoing_answered,
              missed_clients, recalled_clients, not_recalled_clients,
              answer_rate, recall_rate, no_recall_pct, avg_recall_minutes,
              h_09_11, h_11_13, h_13_15, h_15_17, h_17_19, h_19_21, h_21_23)
         VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
-                %s, %s, %s, %s, %s, %s, %s)
-        ON CONFLICT (stat_date, manager_name) DO UPDATE SET
+                %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        ON CONFLICT (stat_month, manager_name) DO UPDATE SET
+            period_start = EXCLUDED.period_start,
+            period_end = EXCLUDED.period_end,
             total_calls = EXCLUDED.total_calls,
             incoming_answered = EXCLUDED.incoming_answered,
             outgoing_answered = EXCLUDED.outgoing_answered,
@@ -310,7 +318,7 @@ def upsert_monthly(cur, month_start, manager_name, st):
             h_17_19 = EXCLUDED.h_17_19, h_19_21 = EXCLUDED.h_19_21,
             h_21_23 = EXCLUDED.h_21_23
     """, (
-        month_start, manager_name,
+        month_start, manager_name, month_start, month_end,
         st["total"], st["incoming"], st["outgoing"],
         st["missed"], st["recalled"], st["not_recalled"],
         st["answer_rate"], st["recall_rate"], st["no_recall_pct"], st["avg_recall_minutes"],

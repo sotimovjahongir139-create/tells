@@ -41,12 +41,14 @@ async function initDb() {
       ${cols}, PRIMARY KEY (stat_date, manager_name)
     )`, 'amo_call_daily_stats'],
     [`CREATE TABLE IF NOT EXISTS amo_call_weekly_stats (
-      stat_date DATE NOT NULL, manager_name TEXT NOT NULL,
-      ${cols}, PRIMARY KEY (stat_date, manager_name)
+      stat_week DATE NOT NULL, manager_name TEXT NOT NULL,
+      period_start DATE, period_end DATE,
+      ${cols}, PRIMARY KEY (stat_week, manager_name)
     )`, 'amo_call_weekly_stats'],
     [`CREATE TABLE IF NOT EXISTS amo_call_monthly_stats (
-      stat_date DATE NOT NULL, manager_name TEXT NOT NULL,
-      ${cols}, PRIMARY KEY (stat_date, manager_name)
+      stat_month DATE NOT NULL, manager_name TEXT NOT NULL,
+      period_start DATE, period_end DATE,
+      ${cols}, PRIMARY KEY (stat_month, manager_name)
     )`, 'amo_call_monthly_stats'],
     [`CREATE TABLE IF NOT EXISTS amo_sync_logs (
       id BIGSERIAL PRIMARY KEY,
@@ -74,9 +76,9 @@ app.get('/health', async (_req, res) => {
 app.get('/api/stats', async (req, res) => {
   const { period = 'daily', manager } = req.query;
   let table, dateField, selectExpr;
-  if      (period === 'weekly')  { table = 'amo_call_weekly_stats';  dateField = 'stat_date'; selectExpr = '*, stat_date AS week_start'; }
-  else if (period === 'monthly') { table = 'amo_call_monthly_stats'; dateField = 'stat_date'; selectExpr = '*, stat_date AS month_start'; }
-  else                           { table = 'amo_call_daily_stats';   dateField = 'stat_date'; selectExpr = '*'; }
+  if      (period === 'weekly')  { table = 'amo_call_weekly_stats';  dateField = 'stat_week';  selectExpr = '*, stat_week AS week_start'; }
+  else if (period === 'monthly') { table = 'amo_call_monthly_stats'; dateField = 'stat_month'; selectExpr = '*, stat_month AS month_start'; }
+  else                           { table = 'amo_call_daily_stats';   dateField = 'stat_date';  selectExpr = '*'; }
   try {
     const where = manager ? 'WHERE manager_name = $1' : '';
     const { rows } = await pool.query(
@@ -268,17 +270,22 @@ function calcStats(records, fromTs, toTs) {
   };
 }
 
-async function upsert(table, uniqueCol, uniqueVal, managerName, st) {
+async function upsert(table, uniqueCol, uniqueVal, managerName, st, extra = {}) {
   const h = st.hours;
+  const extraKeys = Object.keys(extra);
+  const extraColsSql   = extraKeys.length ? ', ' + extraKeys.join(', ') : '';
+  const extraParamsSql = extraKeys.map((_, i) => `$${20 + i}`).join(', ');
+  const extraPrefixSql = extraKeys.length ? ', ' + extraParamsSql : '';
+
   await pool.query(`
     INSERT INTO ${table}
       (${uniqueCol}, manager_name,
        total_calls, incoming_answered, outgoing_answered,
        missed_clients, recalled_clients, not_recalled_clients,
        answer_rate, recall_rate, no_recall_pct, avg_recall_minutes,
-       h_09_11, h_11_13, h_13_15, h_15_17, h_17_19, h_19_21, h_21_23)
+       h_09_11, h_11_13, h_13_15, h_15_17, h_17_19, h_19_21, h_21_23${extraColsSql})
     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,
-            $13,$14,$15,$16,$17,$18,$19)
+            $13,$14,$15,$16,$17,$18,$19${extraPrefixSql})
     ON CONFLICT (${uniqueCol}, manager_name) DO UPDATE SET
       total_calls=$3, incoming_answered=$4, outgoing_answered=$5,
       missed_clients=$6, recalled_clients=$7, not_recalled_clients=$8,
@@ -292,6 +299,7 @@ async function upsert(table, uniqueCol, uniqueVal, managerName, st) {
     st.answer_rate, st.recall_rate, st.no_recall_pct, st.avg_recall_minutes,
     h['09:00-11:00']||0, h['11:00-13:00']||0, h['13:00-15:00']||0,
     h['15:00-17:00']||0, h['17:00-19:00']||0, h['19:00-21:00']||0, h['21:00-23:00']||0,
+    ...Object.values(extra),
   ]);
 }
 
@@ -331,10 +339,14 @@ async function runSync() {
     const wSt = calcStats(recs, ts(weekStart), ts(dayEnd));
     const mSt = calcStats(recs, ts(monthStart),ts(dayEnd));
 
-    const d = d => d.toISOString().slice(0, 10);
-    await upsert('amo_call_daily_stats',   'stat_date', d(dayStart),   managerName, dSt);
-    await upsert('amo_call_weekly_stats',  'stat_date', d(weekStart),  managerName, wSt);
-    await upsert('amo_call_monthly_stats', 'stat_date', d(monthStart), managerName, mSt);
+    const fmt = dt => dt.toISOString().slice(0, 10);
+    const weekEnd  = new Date(weekStart);  weekEnd.setDate(weekStart.getDate() + 6);
+    const monthEnd = new Date(monthStart.getFullYear(), monthStart.getMonth() + 1, 0);
+    await upsert('amo_call_daily_stats',   'stat_date',  fmt(dayStart),   managerName, dSt);
+    await upsert('amo_call_weekly_stats',  'stat_week',  fmt(weekStart),  managerName, wSt,
+                 { period_start: fmt(weekStart),  period_end: fmt(weekEnd) });
+    await upsert('amo_call_monthly_stats', 'stat_month', fmt(monthStart), managerName, mSt,
+                 { period_start: fmt(monthStart), period_end: fmt(monthEnd) });
   }
 
   const dur = Date.now() - t0;
