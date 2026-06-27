@@ -252,13 +252,13 @@ def upsert_weekly(cur, week_start, manager_name, st):
     h = st["hours"]
     cur.execute("""
         INSERT INTO amo_call_weekly_stats
-            (week_start, manager_name, total_calls, incoming_answered, outgoing_answered,
+            (stat_date, manager_name, total_calls, incoming_answered, outgoing_answered,
              missed_clients, recalled_clients, not_recalled_clients,
              answer_rate, recall_rate, no_recall_pct, avg_recall_minutes,
              h_09_11, h_11_13, h_13_15, h_15_17, h_17_19, h_19_21, h_21_23)
         VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
                 %s, %s, %s, %s, %s, %s, %s)
-        ON CONFLICT (week_start, manager_name) DO UPDATE SET
+        ON CONFLICT (stat_date, manager_name) DO UPDATE SET
             total_calls = EXCLUDED.total_calls,
             incoming_answered = EXCLUDED.incoming_answered,
             outgoing_answered = EXCLUDED.outgoing_answered,
@@ -288,13 +288,13 @@ def upsert_monthly(cur, month_start, manager_name, st):
     h = st["hours"]
     cur.execute("""
         INSERT INTO amo_call_monthly_stats
-            (month_start, manager_name, total_calls, incoming_answered, outgoing_answered,
+            (stat_date, manager_name, total_calls, incoming_answered, outgoing_answered,
              missed_clients, recalled_clients, not_recalled_clients,
              answer_rate, recall_rate, no_recall_pct, avg_recall_minutes,
              h_09_11, h_11_13, h_13_15, h_15_17, h_17_19, h_19_21, h_21_23)
         VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
                 %s, %s, %s, %s, %s, %s, %s)
-        ON CONFLICT (month_start, manager_name) DO UPDATE SET
+        ON CONFLICT (stat_date, manager_name) DO UPDATE SET
             total_calls = EXCLUDED.total_calls,
             incoming_answered = EXCLUDED.incoming_answered,
             outgoing_answered = EXCLUDED.outgoing_answered,

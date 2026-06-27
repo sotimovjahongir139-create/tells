@@ -41,12 +41,12 @@ async function initDb() {
       ${cols}, PRIMARY KEY (stat_date, manager_name)
     )`, 'amo_call_daily_stats'],
     [`CREATE TABLE IF NOT EXISTS amo_call_weekly_stats (
-      week_start DATE NOT NULL, manager_name TEXT NOT NULL,
-      ${cols}, PRIMARY KEY (week_start, manager_name)
+      stat_date DATE NOT NULL, manager_name TEXT NOT NULL,
+      ${cols}, PRIMARY KEY (stat_date, manager_name)
     )`, 'amo_call_weekly_stats'],
     [`CREATE TABLE IF NOT EXISTS amo_call_monthly_stats (
-      month_start DATE NOT NULL, manager_name TEXT NOT NULL,
-      ${cols}, PRIMARY KEY (month_start, manager_name)
+      stat_date DATE NOT NULL, manager_name TEXT NOT NULL,
+      ${cols}, PRIMARY KEY (stat_date, manager_name)
     )`, 'amo_call_monthly_stats'],
     [`CREATE TABLE IF NOT EXISTS amo_sync_logs (
       id BIGSERIAL PRIMARY KEY,
@@ -73,14 +73,14 @@ app.get('/health', async (_req, res) => {
 
 app.get('/api/stats', async (req, res) => {
   const { period = 'daily', manager } = req.query;
-  let table, dateField;
-  if      (period === 'weekly')  { table = 'amo_call_weekly_stats';  dateField = 'week_start';  }
-  else if (period === 'monthly') { table = 'amo_call_monthly_stats'; dateField = 'month_start'; }
-  else                           { table = 'amo_call_daily_stats';   dateField = 'stat_date';   }
+  let table, dateField, selectExpr;
+  if      (period === 'weekly')  { table = 'amo_call_weekly_stats';  dateField = 'stat_date'; selectExpr = '*, stat_date AS week_start'; }
+  else if (period === 'monthly') { table = 'amo_call_monthly_stats'; dateField = 'stat_date'; selectExpr = '*, stat_date AS month_start'; }
+  else                           { table = 'amo_call_daily_stats';   dateField = 'stat_date'; selectExpr = '*'; }
   try {
     const where = manager ? 'WHERE manager_name = $1' : '';
     const { rows } = await pool.query(
-      `SELECT * FROM ${table} ${where} ORDER BY ${dateField} DESC LIMIT 1`,
+      `SELECT ${selectExpr} FROM ${table} ${where} ORDER BY ${dateField} DESC LIMIT 1`,
       manager ? [manager] : []
     );
     res.json(rows[0] || null);
@@ -95,8 +95,8 @@ app.get('/api/debug/schema', async (_req, res) => {
   const results = {};
   for (const t of ['amo_call_daily_stats','amo_call_weekly_stats','amo_call_monthly_stats','amo_sync_logs']) {
     try {
-      const { rows } = await pool.query(`SELECT * FROM ${t} LIMIT 0`);
-      results[t] = { ok: true, fields: rows.fields ? rows.fields.map(f => f.name) : 'unknown' };
+      const result = await pool.query(`SELECT * FROM ${t} LIMIT 0`);
+      results[t] = { ok: true, fields: result.fields.map(f => f.name) };
     } catch (e) {
       results[t] = { ok: false, code: e.code, error: e.message };
     }
@@ -332,9 +332,9 @@ async function runSync() {
     const mSt = calcStats(recs, ts(monthStart),ts(dayEnd));
 
     const d = d => d.toISOString().slice(0, 10);
-    await upsert('amo_call_daily_stats',   'stat_date',  d(dayStart),  managerName, dSt);
-    await upsert('amo_call_weekly_stats',  'week_start', d(weekStart), managerName, wSt);
-    await upsert('amo_call_monthly_stats', 'month_start',d(monthStart),managerName, mSt);
+    await upsert('amo_call_daily_stats',   'stat_date', d(dayStart),   managerName, dSt);
+    await upsert('amo_call_weekly_stats',  'stat_date', d(weekStart),  managerName, wSt);
+    await upsert('amo_call_monthly_stats', 'stat_date', d(monthStart), managerName, mSt);
   }
 
   const dur = Date.now() - t0;
