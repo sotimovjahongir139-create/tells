@@ -216,12 +216,12 @@ def upsert_daily(cur, stat_date, manager_name, st):
     h = st["hours"]
     cur.execute("""
         INSERT INTO amo_call_daily_stats
-            (id, stat_date, manager_name, total_calls, incoming_answered, outgoing_answered,
+            (stat_date, manager_name, total_calls, incoming_answered, outgoing_answered,
              missed_clients, recalled_clients, not_recalled_clients,
              answer_rate, recall_rate, no_recall_pct, avg_recall_minutes,
              h_09_11, h_11_13, h_13_15, h_15_17, h_17_19, h_19_21, h_21_23,
              created_at, updated_at)
-        VALUES (gen_random_uuid()::text, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
                 %s, %s, %s, %s, %s, %s, %s, NOW(), NOW())
         ON CONFLICT (stat_date, manager_name) DO UPDATE SET
             total_calls = EXCLUDED.total_calls,
@@ -253,12 +253,12 @@ def upsert_weekly(cur, week_start, manager_name, st):
     h = st["hours"]
     cur.execute("""
         INSERT INTO amo_call_weekly_stats
-            (id, week_start, manager_name, total_calls, incoming_answered, outgoing_answered,
+            (week_start, manager_name, total_calls, incoming_answered, outgoing_answered,
              missed_clients, recalled_clients, not_recalled_clients,
              answer_rate, recall_rate, no_recall_pct, avg_recall_minutes,
              h_09_11, h_11_13, h_13_15, h_15_17, h_17_19, h_19_21, h_21_23,
              created_at, updated_at)
-        VALUES (gen_random_uuid()::text, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
                 %s, %s, %s, %s, %s, %s, %s, NOW(), NOW())
         ON CONFLICT (week_start, manager_name) DO UPDATE SET
             total_calls = EXCLUDED.total_calls,
@@ -290,12 +290,12 @@ def upsert_monthly(cur, month_start, manager_name, st):
     h = st["hours"]
     cur.execute("""
         INSERT INTO amo_call_monthly_stats
-            (id, month_start, manager_name, total_calls, incoming_answered, outgoing_answered,
+            (month_start, manager_name, total_calls, incoming_answered, outgoing_answered,
              missed_clients, recalled_clients, not_recalled_clients,
              answer_rate, recall_rate, no_recall_pct, avg_recall_minutes,
              h_09_11, h_11_13, h_13_15, h_15_17, h_17_19, h_19_21, h_21_23,
              created_at, updated_at)
-        VALUES (gen_random_uuid()::text, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
                 %s, %s, %s, %s, %s, %s, %s, NOW(), NOW())
         ON CONFLICT (month_start, manager_name) DO UPDATE SET
             total_calls = EXCLUDED.total_calls,
@@ -382,8 +382,8 @@ def main():
                     )
 
                 cur.execute("""
-                    INSERT INTO amo_sync_logs (id, synced_at, status, manager, events_count, duration_ms)
-                    VALUES (gen_random_uuid()::text, NOW(), 'success', %s, %s, %s)
+                    INSERT INTO amo_sync_logs (synced_at, status, manager, events_count, duration_ms)
+                    VALUES (NOW(), 'success', %s, %s, %s)
                 """, (list(target_ids.values())[0], len(events), int((time.time() - start) * 1000)))
 
         log.info(f"ETL done in {time.time() - start:.1f}s")
@@ -391,8 +391,8 @@ def main():
         with conn:
             with conn.cursor() as cur:
                 cur.execute("""
-                    INSERT INTO amo_sync_logs (id, synced_at, status, error_msg, duration_ms)
-                    VALUES (gen_random_uuid()::text, NOW(), 'error', %s, %s)
+                    INSERT INTO amo_sync_logs (synced_at, status, error_msg, duration_ms)
+                    VALUES (NOW(), 'error', %s, %s)
                 """, (str(exc), int((time.time() - start) * 1000)))
         raise
     finally:
