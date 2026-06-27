@@ -91,15 +91,16 @@ app.get('/api/stats', async (req, res) => {
 });
 
 app.get('/api/debug/schema', async (_req, res) => {
-  try {
-    const { rows } = await pool.query(`
-      SELECT table_name, column_name, data_type
-      FROM information_schema.columns
-      WHERE table_name IN ('amo_call_daily_stats','amo_call_weekly_stats','amo_call_monthly_stats','amo_sync_logs')
-      ORDER BY table_name, ordinal_position
-    `);
-    res.json(rows);
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  const results = {};
+  for (const t of ['amo_call_daily_stats','amo_call_weekly_stats','amo_call_monthly_stats','amo_sync_logs']) {
+    try {
+      const { rows } = await pool.query(`SELECT * FROM ${t} LIMIT 0`);
+      results[t] = { ok: true, fields: rows.fields ? rows.fields.map(f => f.name) : 'unknown' };
+    } catch (e) {
+      results[t] = { ok: false, code: e.code, error: e.message };
+    }
+  }
+  res.json(results); // always 200 so body is readable
 });
 
 app.get('/api/sync/status', async (_req, res) => {
