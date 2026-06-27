@@ -5,6 +5,7 @@ const express = require('express');
 const { Pool }  = require('pg');
 const path      = require('path');
 const https     = require('https');
+const { randomUUID } = require('crypto');
 
 const app  = express();
 const PORT = parseInt(process.env.PORT || '5002', 10);
@@ -339,8 +340,8 @@ async function runSync() {
   const dur = Date.now() - t0;
   await pool.query(
     `INSERT INTO amo_sync_logs (id,synced_at,status,manager,events_count,duration_ms)
-     VALUES (gen_random_uuid()::text,NOW(),'success',$1,$2,$3)`,
-    [Object.values(targetIds)[0], events.length, dur]
+     VALUES ($4,NOW(),'success',$1,$2,$3)`,
+    [Object.values(targetIds)[0], events.length, dur, randomUUID()]
   );
   return { eventsCount: events.length, managers: Object.values(targetIds), durationMs: dur };
 }
@@ -355,8 +356,8 @@ app.post('/api/sync', async (req, res) => {
     const msg = e.message || String(e);
     pool.query(
       `INSERT INTO amo_sync_logs (id,synced_at,status,error_msg,duration_ms)
-       VALUES (gen_random_uuid()::text,NOW(),'error',$1,$2)`,
-      [msg, 0]
+       VALUES ($3,NOW(),'error',$1,$2)`,
+      [msg, 0, randomUUID()]
     ).catch(() => {});
     res.status(500).json({ error: msg });
   }
@@ -373,8 +374,8 @@ function autoSyncOnce(label) {
       console.error(`Auto-sync ${label} error:`, e.message);
       pool.query(
         `INSERT INTO amo_sync_logs (id,synced_at,status,error_msg,duration_ms)
-         VALUES (gen_random_uuid()::text,NOW(),'error',$1,0)`,
-        [e.message]
+         VALUES ($2,NOW(),'error',$1,0)`,
+        [e.message, randomUUID()]
       ).catch(err => console.error('sync_logs write failed:', err.message));
     });
 }
