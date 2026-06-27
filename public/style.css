@@ -110,6 +110,63 @@ h1 { font-size: 1.5rem; font-weight: 700; }
 .hidden { display: none !important; }
 #no-data { text-align: center; color: #6b7280; padding: 5rem 1rem; font-size: 0.95rem; }
 
+/* Debt section */
+.debt-form-card { margin-bottom: 0.75rem; }
+.debt-form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+.form-group { display: flex; flex-direction: column; gap: 0.3rem; }
+.form-group label { font-size: 0.75rem; color: #9ca3af; }
+.form-group input {
+  background: #1f2937;
+  border: 1px solid #374151;
+  border-radius: 0.5rem;
+  color: #f9fafb;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  outline: none;
+  width: 100%;
+}
+.form-group input:focus { border-color: #3b82f6; }
+.debt-form-btns { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+.btn-save {
+  background: #3b82f6; color: #fff; border: none;
+  border-radius: 0.5rem; padding: 0.45rem 1.2rem;
+  cursor: pointer; font-size: 0.875rem; font-weight: 500;
+}
+.btn-save:hover { background: #2563eb; }
+.btn-cancel {
+  background: #374151; color: #d1d5db; border: none;
+  border-radius: 0.5rem; padding: 0.45rem 1.2rem;
+  cursor: pointer; font-size: 0.875rem;
+}
+.btn-cancel:hover { background: #4b5563; }
+.debt-table-outer { overflow-x: auto; }
+.debt-table {
+  width: 100%; border-collapse: collapse; font-size: 0.85rem;
+  background: #111827; border-radius: 0.75rem; overflow: hidden;
+}
+.debt-table th {
+  background: #1f2937; color: #9ca3af;
+  padding: 0.6rem 0.75rem; text-align: left;
+  font-size: 0.75rem; font-weight: 600; white-space: nowrap;
+}
+.debt-table td { padding: 0.6rem 0.75rem; border-bottom: 1px solid #1f2937; }
+.debt-table tbody tr:last-child td { border-bottom: none; }
+.row-yellow td { background: rgba(234,179,8,0.18) !important; }
+.row-orange td { background: rgba(249,115,22,0.2)  !important; }
+.row-red    td { background: rgba(239,68,68,0.2)   !important; }
+.row-darkred td { background: rgba(127,29,29,0.45) !important; }
+.debt-del-btn {
+  background: none; border: none; color: #6b7280;
+  cursor: pointer; font-size: 0.9rem; line-height: 1;
+}
+.debt-del-btn:hover { color: #f87171; }
+#debt-empty { text-align: center; color: #6b7280; padding: 2rem 1rem; font-size: 0.9rem; }
+
 @media (max-width: 540px) {
   h1 { font-size: 1.2rem; }
   header { flex-direction: column; }

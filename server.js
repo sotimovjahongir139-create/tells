@@ -55,6 +55,14 @@ async function initDb() {
       synced_at TIMESTAMPTZ DEFAULT NOW(), status TEXT NOT NULL,
       manager TEXT, events_count INT, duration_ms INT, error_msg TEXT
     )`, 'amo_sync_logs'],
+    [`CREATE TABLE IF NOT EXISTS amo_debts (
+      id BIGSERIAL PRIMARY KEY,
+      mijoz_nomi TEXT NOT NULL,
+      mahsulot TEXT NOT NULL,
+      qarzdorlik_summasi NUMERIC NOT NULL,
+      kelishilgan_sana DATE NOT NULL,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    )`, 'amo_debts'],
   ];
   for (const [sql, name] of tables) {
     try { await pool.query(sql); console.log(`Table OK: ${name}`); }
@@ -373,6 +381,35 @@ app.post('/api/sync', async (req, res) => {
     ).catch(() => {});
     res.status(500).json({ error: msg });
   }
+});
+
+// ─── Debt endpoints ───────────────────────────────────────────────────────────
+app.get('/api/debts', async (_req, res) => {
+  try {
+    const { rows } = await pool.query('SELECT * FROM amo_debts ORDER BY kelishilgan_sana ASC');
+    res.json(rows);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post('/api/debts', async (req, res) => {
+  const { mijoz_nomi, mahsulot, qarzdorlik_summasi, kelishilgan_sana } = req.body;
+  if (!mijoz_nomi || !mahsulot || !qarzdorlik_summasi || !kelishilgan_sana)
+    return res.status(400).json({ error: 'All fields required' });
+  try {
+    const { rows } = await pool.query(
+      `INSERT INTO amo_debts (mijoz_nomi, mahsulot, qarzdorlik_summasi, kelishilgan_sana)
+       VALUES ($1, $2, $3, $4) RETURNING *`,
+      [mijoz_nomi, mahsulot, qarzdorlik_summasi, kelishilgan_sana]
+    );
+    res.json(rows[0]);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.delete('/api/debts/:id', async (req, res) => {
+  try {
+    await pool.query('DELETE FROM amo_debts WHERE id = $1', [req.params.id]);
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
 app.get('*', (_req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));

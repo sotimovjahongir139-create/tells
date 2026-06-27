@@ -21,6 +21,7 @@
     <button class="tab active" data-period="daily">Kunlik</button>
     <button class="tab" data-period="weekly">Haftalik</button>
     <button class="tab" data-period="monthly">Oylik</button>
+    <button class="tab" data-period="debt">Qarzdorlik</button>
   </nav>
 
   <div id="no-data" class="hidden">Ma'lumot mavjud emas. Sinxronizatsiya tugmasini bosing.</div>
@@ -32,6 +33,36 @@
       <h3>Soatlik taqsimot</h3>
       <canvas id="hour-chart" height="100"></canvas>
     </div>
+  </div>
+
+  <div id="debt-section" class="hidden">
+    <div class="card debt-form-card">
+      <form id="debt-form">
+        <div class="debt-form-grid">
+          <div class="form-group">
+            <label for="d-mijoz">Mijoz nomi</label>
+            <input type="text" id="d-mijoz" placeholder="Mijoz nomi" required>
+          </div>
+          <div class="form-group">
+            <label for="d-mahsulot">Mahsulot</label>
+            <input type="text" id="d-mahsulot" placeholder="Mahsulot" required>
+          </div>
+          <div class="form-group">
+            <label for="d-summa">Qarzdorlik summasi</label>
+            <input type="number" id="d-summa" placeholder="0" min="0" step="any" required>
+          </div>
+          <div class="form-group">
+            <label for="d-sana">Kelishilgan sana</label>
+            <input type="date" id="d-sana" required>
+          </div>
+        </div>
+        <div class="debt-form-btns">
+          <button type="submit" class="btn-save">Saqlash</button>
+          <button type="button" class="btn-cancel" onclick="debtFormReset()">Bekor qilish</button>
+        </div>
+      </form>
+    </div>
+    <div id="debt-table-wrap"></div>
   </div>
 </div>
 <script src="app.js"></script>
