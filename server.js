@@ -34,25 +34,29 @@ async function initDb() {
     h_15_17 INT DEFAULT 0, h_17_19 INT DEFAULT 0, h_19_21 INT DEFAULT 0,
     h_21_23 INT DEFAULT 0
   `;
-  // Split into separate queries — PgBouncer doesn't support multi-statement
-  await pool.query(`CREATE TABLE IF NOT EXISTS amo_call_daily_stats (
-    stat_date DATE NOT NULL, manager_name TEXT NOT NULL,
-    ${cols}, PRIMARY KEY (stat_date, manager_name)
-  )`);
-  await pool.query(`CREATE TABLE IF NOT EXISTS amo_call_weekly_stats (
-    week_start DATE NOT NULL, manager_name TEXT NOT NULL,
-    ${cols}, PRIMARY KEY (week_start, manager_name)
-  )`);
-  await pool.query(`CREATE TABLE IF NOT EXISTS amo_call_monthly_stats (
-    month_start DATE NOT NULL, manager_name TEXT NOT NULL,
-    ${cols}, PRIMARY KEY (month_start, manager_name)
-  )`);
-  await pool.query(`CREATE TABLE IF NOT EXISTS amo_sync_logs (
-    id BIGSERIAL PRIMARY KEY,
-    synced_at TIMESTAMPTZ DEFAULT NOW(), status TEXT NOT NULL,
-    manager TEXT, events_count INT, duration_ms INT, error_msg TEXT
-  )`);
-  console.log('DB ready');
+  const tables = [
+    [`CREATE TABLE IF NOT EXISTS amo_call_daily_stats (
+      stat_date DATE NOT NULL, manager_name TEXT NOT NULL,
+      ${cols}, PRIMARY KEY (stat_date, manager_name)
+    )`, 'amo_call_daily_stats'],
+    [`CREATE TABLE IF NOT EXISTS amo_call_weekly_stats (
+      week_start DATE NOT NULL, manager_name TEXT NOT NULL,
+      ${cols}, PRIMARY KEY (week_start, manager_name)
+    )`, 'amo_call_weekly_stats'],
+    [`CREATE TABLE IF NOT EXISTS amo_call_monthly_stats (
+      month_start DATE NOT NULL, manager_name TEXT NOT NULL,
+      ${cols}, PRIMARY KEY (month_start, manager_name)
+    )`, 'amo_call_monthly_stats'],
+    [`CREATE TABLE IF NOT EXISTS amo_sync_logs (
+      id BIGSERIAL PRIMARY KEY,
+      synced_at TIMESTAMPTZ DEFAULT NOW(), status TEXT NOT NULL,
+      manager TEXT, events_count INT, duration_ms INT, error_msg TEXT
+    )`, 'amo_sync_logs'],
+  ];
+  for (const [sql, name] of tables) {
+    try { await pool.query(sql); console.log(`Table OK: ${name}`); }
+    catch (e) { console.error(`Table FAIL: ${name}:`, e.message); }
+  }
 }
 
 // ─── Express ──────────────────────────────────────────────────────────────────
@@ -79,7 +83,10 @@ app.get('/api/stats', async (req, res) => {
       manager ? [manager] : []
     );
     res.json(rows[0] || null);
-  } catch (e) { res.status(500).json({ error: e.message || String(e) }); }
+  } catch (e) {
+    if (e.code === '42P01') return res.json(null); // table not yet created → show "no data"
+    res.status(500).json({ error: e.message || String(e) });
+  }
 });
 
 app.get('/api/sync/status', async (_req, res) => {
