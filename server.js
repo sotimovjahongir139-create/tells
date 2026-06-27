@@ -365,22 +365,23 @@ app.post('/api/sync', async (req, res) => {
 app.get('*', (_req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
 
 // ─── Auto-sync ───────────────────────────────────────────────────────────────
-function scheduleAutoSync() {
-  // Run once at startup after 90s (let DB init finish)
-  setTimeout(() => {
-    console.log('Auto-sync: startup run');
-    runSync()
-      .then(r => console.log('Auto-sync done:', r.eventsCount, 'events'))
-      .catch(e => console.error('Auto-sync error:', e.message));
-  }, 90_000);
+function autoSyncOnce(label) {
+  console.log(`Auto-sync: ${label}`);
+  runSync()
+    .then(r => console.log(`Auto-sync ${label} done:`, r.eventsCount, 'events'))
+    .catch(e => {
+      console.error(`Auto-sync ${label} error:`, e.message);
+      pool.query(
+        `INSERT INTO amo_sync_logs (id,synced_at,status,error_msg,duration_ms)
+         VALUES (gen_random_uuid()::text,NOW(),'error',$1,0)`,
+        [e.message]
+      ).catch(err => console.error('sync_logs write failed:', err.message));
+    });
+}
 
-  // Then every 6 hours
-  setInterval(() => {
-    console.log('Auto-sync: scheduled run');
-    runSync()
-      .then(r => console.log('Auto-sync done:', r.eventsCount, 'events'))
-      .catch(e => console.error('Auto-sync error:', e.message));
-  }, 6 * 60 * 60 * 1000);
+function scheduleAutoSync() {
+  setTimeout(() => autoSyncOnce('startup'), 90_000);
+  setInterval(() => autoSyncOnce('scheduled'), 6 * 60 * 60 * 1000);
 }
 
 // ─── Start ────────────────────────────────────────────────────────────────────
