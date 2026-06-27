@@ -23,7 +23,7 @@ header {
   margin-bottom: 1.25rem;
 }
 h1 { font-size: 1.5rem; font-weight: 700; }
-.period-label { font-size: 0.8rem; color: #9ca3af; margin-top: 0.2rem; min-height: 1em; }
+.period-label { display: none; }
 
 /* Sync */
 #sync-wrap { display: none !important; }
