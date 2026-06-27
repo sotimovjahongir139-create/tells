@@ -84,9 +84,22 @@ app.get('/api/stats', async (req, res) => {
     );
     res.json(rows[0] || null);
   } catch (e) {
-    if (e.code === '42P01') return res.json(null); // table not yet created → show "no data"
+    console.error(`/api/stats ${period} error code=${e.code}:`, e.message);
+    if (e.code && e.code.startsWith('42')) return res.json(null); // schema error → show "no data"
     res.status(500).json({ error: e.message || String(e) });
   }
+});
+
+app.get('/api/debug/schema', async (_req, res) => {
+  try {
+    const { rows } = await pool.query(`
+      SELECT table_name, column_name, data_type
+      FROM information_schema.columns
+      WHERE table_name IN ('amo_call_daily_stats','amo_call_weekly_stats','amo_call_monthly_stats','amo_sync_logs')
+      ORDER BY table_name, ordinal_position
+    `);
+    res.json(rows);
+  } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
 app.get('/api/sync/status', async (_req, res) => {
