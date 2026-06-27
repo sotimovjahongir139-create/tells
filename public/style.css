@@ -167,10 +167,60 @@ h1 { font-size: 1.5rem; font-weight: 700; }
 .debt-del-btn:hover { color: #f87171; }
 #debt-empty { text-align: center; color: #6b7280; padding: 2rem 1rem; font-size: 0.9rem; }
 
-@media (max-width: 540px) {
-  h1 { font-size: 1.2rem; }
-  header { flex-direction: column; }
-  #sync-wrap { align-items: flex-start; }
-  #sync-msg { text-align: left; }
-  .cards { grid-template-columns: 1fr 1fr; }
+/* ── Desktop (768px+) ────────────────────────────────────────────────────── */
+@media (min-width: 768px) {
+  .cards   { grid-template-columns: repeat(6, 1fr); }
+  .gauges  { grid-template-columns: 1fr 1fr; }
+}
+
+/* ── Mobile (≤767px) ─────────────────────────────────────────────────────── */
+@media (max-width: 767px) {
+  body { overflow-x: hidden; }
+
+  #app { padding: 0.75rem 0.75rem; }
+
+  header { flex-direction: column; gap: 0.5rem; margin-bottom: 0.75rem; }
+  h1 { font-size: 1.15rem; }
+  .period-label { font-size: 0.72rem; }
+
+  /* Tabs: 2 per row, full-width bar */
+  .tabs {
+    width: 100%;
+    flex-wrap: wrap;
+    border-radius: 0.6rem;
+    margin-bottom: 0.75rem;
+  }
+  .tab {
+    flex: 1 1 calc(50% - 0.25rem);
+    text-align: center;
+    padding: 0.5rem 0.5rem;
+    font-size: 0.8rem;
+  }
+
+  /* Stat cards: 2 per row */
+  .cards {
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+  }
+  .card { padding: 0.75rem; }
+  .card-value { font-size: 1.6rem; }
+  .card-label { font-size: 0.68rem; }
+
+  /* Gauges: stack vertically */
+  .gauges {
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+  }
+  .gauge-card svg { width: 130px; height: 130px; }
+
+  /* Chart */
+  #chart-card { padding: 0.75rem; }
+  #chart-card h3 { font-size: 0.72rem; }
+
+  /* Debt form */
+  .debt-form-grid { grid-template-columns: 1fr 1fr; gap: 0.5rem; }
+  .debt-table { font-size: 0.78rem; }
+  .debt-table th, .debt-table td { padding: 0.45rem 0.5rem; }
 }
