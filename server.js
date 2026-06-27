@@ -32,8 +32,7 @@ async function initDb() {
     no_recall_pct FLOAT DEFAULT 0, avg_recall_minutes FLOAT DEFAULT 0,
     h_09_11 INT DEFAULT 0, h_11_13 INT DEFAULT 0, h_13_15 INT DEFAULT 0,
     h_15_17 INT DEFAULT 0, h_17_19 INT DEFAULT 0, h_19_21 INT DEFAULT 0,
-    h_21_23 INT DEFAULT 0,
-    created_at TIMESTAMPTZ DEFAULT NOW(), updated_at TIMESTAMPTZ DEFAULT NOW()
+    h_21_23 INT DEFAULT 0
   `;
   // Split into separate queries — PgBouncer doesn't support multi-statement
   await pool.query(`CREATE TABLE IF NOT EXISTS amo_call_daily_stats (
@@ -255,16 +254,15 @@ async function upsert(table, uniqueCol, uniqueVal, managerName, st) {
        total_calls, incoming_answered, outgoing_answered,
        missed_clients, recalled_clients, not_recalled_clients,
        answer_rate, recall_rate, no_recall_pct, avg_recall_minutes,
-       h_09_11, h_11_13, h_13_15, h_15_17, h_17_19, h_19_21, h_21_23,
-       created_at, updated_at)
+       h_09_11, h_11_13, h_13_15, h_15_17, h_17_19, h_19_21, h_21_23)
     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,
-            $13,$14,$15,$16,$17,$18,$19,NOW(),NOW())
+            $13,$14,$15,$16,$17,$18,$19)
     ON CONFLICT (${uniqueCol}, manager_name) DO UPDATE SET
       total_calls=$3, incoming_answered=$4, outgoing_answered=$5,
       missed_clients=$6, recalled_clients=$7, not_recalled_clients=$8,
       answer_rate=$9, recall_rate=$10, no_recall_pct=$11, avg_recall_minutes=$12,
       h_09_11=$13, h_11_13=$14, h_13_15=$15,
-      h_15_17=$16, h_17_19=$17, h_19_21=$18, h_21_23=$19, updated_at=NOW()
+      h_15_17=$16, h_17_19=$17, h_19_21=$18, h_21_23=$19
   `, [
     uniqueVal, managerName,
     st.total, st.incoming, st.outgoing,

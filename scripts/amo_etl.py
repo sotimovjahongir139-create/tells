@@ -219,10 +219,9 @@ def upsert_daily(cur, stat_date, manager_name, st):
             (stat_date, manager_name, total_calls, incoming_answered, outgoing_answered,
              missed_clients, recalled_clients, not_recalled_clients,
              answer_rate, recall_rate, no_recall_pct, avg_recall_minutes,
-             h_09_11, h_11_13, h_13_15, h_15_17, h_17_19, h_19_21, h_21_23,
-             created_at, updated_at)
+             h_09_11, h_11_13, h_13_15, h_15_17, h_17_19, h_19_21, h_21_23)
         VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
-                %s, %s, %s, %s, %s, %s, %s, NOW(), NOW())
+                %s, %s, %s, %s, %s, %s, %s)
         ON CONFLICT (stat_date, manager_name) DO UPDATE SET
             total_calls = EXCLUDED.total_calls,
             incoming_answered = EXCLUDED.incoming_answered,
@@ -237,7 +236,7 @@ def upsert_daily(cur, stat_date, manager_name, st):
             h_09_11 = EXCLUDED.h_09_11, h_11_13 = EXCLUDED.h_11_13,
             h_13_15 = EXCLUDED.h_13_15, h_15_17 = EXCLUDED.h_15_17,
             h_17_19 = EXCLUDED.h_17_19, h_19_21 = EXCLUDED.h_19_21,
-            h_21_23 = EXCLUDED.h_21_23, updated_at = NOW()
+            h_21_23 = EXCLUDED.h_21_23
     """, (
         stat_date, manager_name,
         st["total"], st["incoming"], st["outgoing"],
@@ -256,10 +255,9 @@ def upsert_weekly(cur, week_start, manager_name, st):
             (week_start, manager_name, total_calls, incoming_answered, outgoing_answered,
              missed_clients, recalled_clients, not_recalled_clients,
              answer_rate, recall_rate, no_recall_pct, avg_recall_minutes,
-             h_09_11, h_11_13, h_13_15, h_15_17, h_17_19, h_19_21, h_21_23,
-             created_at, updated_at)
+             h_09_11, h_11_13, h_13_15, h_15_17, h_17_19, h_19_21, h_21_23)
         VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
-                %s, %s, %s, %s, %s, %s, %s, NOW(), NOW())
+                %s, %s, %s, %s, %s, %s, %s)
         ON CONFLICT (week_start, manager_name) DO UPDATE SET
             total_calls = EXCLUDED.total_calls,
             incoming_answered = EXCLUDED.incoming_answered,
@@ -274,7 +272,7 @@ def upsert_weekly(cur, week_start, manager_name, st):
             h_09_11 = EXCLUDED.h_09_11, h_11_13 = EXCLUDED.h_11_13,
             h_13_15 = EXCLUDED.h_13_15, h_15_17 = EXCLUDED.h_15_17,
             h_17_19 = EXCLUDED.h_17_19, h_19_21 = EXCLUDED.h_19_21,
-            h_21_23 = EXCLUDED.h_21_23, updated_at = NOW()
+            h_21_23 = EXCLUDED.h_21_23
     """, (
         week_start, manager_name,
         st["total"], st["incoming"], st["outgoing"],
@@ -293,10 +291,9 @@ def upsert_monthly(cur, month_start, manager_name, st):
             (month_start, manager_name, total_calls, incoming_answered, outgoing_answered,
              missed_clients, recalled_clients, not_recalled_clients,
              answer_rate, recall_rate, no_recall_pct, avg_recall_minutes,
-             h_09_11, h_11_13, h_13_15, h_15_17, h_17_19, h_19_21, h_21_23,
-             created_at, updated_at)
+             h_09_11, h_11_13, h_13_15, h_15_17, h_17_19, h_19_21, h_21_23)
         VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
-                %s, %s, %s, %s, %s, %s, %s, NOW(), NOW())
+                %s, %s, %s, %s, %s, %s, %s)
         ON CONFLICT (month_start, manager_name) DO UPDATE SET
             total_calls = EXCLUDED.total_calls,
             incoming_answered = EXCLUDED.incoming_answered,
@@ -311,7 +308,7 @@ def upsert_monthly(cur, month_start, manager_name, st):
             h_09_11 = EXCLUDED.h_09_11, h_11_13 = EXCLUDED.h_11_13,
             h_13_15 = EXCLUDED.h_13_15, h_15_17 = EXCLUDED.h_15_17,
             h_17_19 = EXCLUDED.h_17_19, h_19_21 = EXCLUDED.h_19_21,
-            h_21_23 = EXCLUDED.h_21_23, updated_at = NOW()
+            h_21_23 = EXCLUDED.h_21_23
     """, (
         month_start, manager_name,
         st["total"], st["incoming"], st["outgoing"],
