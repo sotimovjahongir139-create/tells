@@ -364,8 +364,28 @@ app.post('/api/sync', async (req, res) => {
 
 app.get('*', (_req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
 
+// ─── Auto-sync ───────────────────────────────────────────────────────────────
+function scheduleAutoSync() {
+  // Run once at startup after 90s (let DB init finish)
+  setTimeout(() => {
+    console.log('Auto-sync: startup run');
+    runSync()
+      .then(r => console.log('Auto-sync done:', r.eventsCount, 'events'))
+      .catch(e => console.error('Auto-sync error:', e.message));
+  }, 90_000);
+
+  // Then every 6 hours
+  setInterval(() => {
+    console.log('Auto-sync: scheduled run');
+    runSync()
+      .then(r => console.log('Auto-sync done:', r.eventsCount, 'events'))
+      .catch(e => console.error('Auto-sync error:', e.message));
+  }, 6 * 60 * 60 * 1000);
+}
+
 // ─── Start ────────────────────────────────────────────────────────────────────
 app.listen(PORT, () => {
   console.log(`Calls dashboard on :${PORT}`);
   initDb().catch(err => console.error('DB init warning:', err.message));
+  scheduleAutoSync();
 });
