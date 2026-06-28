@@ -430,8 +430,20 @@ function autoSyncOnce(label) {
 }
 
 function scheduleAutoSync() {
+  // Run 90s after startup
   setTimeout(() => autoSyncOnce('startup'), 90_000);
-  setInterval(() => autoSyncOnce('scheduled'), 6 * 60 * 60 * 1000);
+
+  // Run every day at 07:00 Tashkent (UTC+5) = 02:00 UTC
+  function scheduleNext() {
+    const now  = new Date();
+    const next = new Date(now);
+    next.setUTCHours(2, 0, 0, 0); // 02:00 UTC = 07:00 Tashkent
+    if (next <= now) next.setUTCDate(next.getUTCDate() + 1);
+    const delay = next - now;
+    console.log(`Next daily sync at 07:00 Tashkent — in ${Math.round(delay / 60000)} min`);
+    setTimeout(() => { autoSyncOnce('daily-07:00'); scheduleNext(); }, delay);
+  }
+  scheduleNext();
 }
 
 // ─── Start ────────────────────────────────────────────────────────────────────
