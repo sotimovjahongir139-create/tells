@@ -4,7 +4,7 @@ let currentPeriod = 'daily';
 let hourChart = null;
 
 async function get(url) {
-  const r = await fetch(url);
+  const r = await fetch(url, { cache: 'no-store' });
   return r.ok ? r.json() : null;
 }
 

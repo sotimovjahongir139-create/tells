@@ -319,15 +319,15 @@ async function runSync() {
 
   const now = new Date();
   let yest = new Date(now);
-  yest.setDate(yest.getDate() - 1);
-  if (yest.getDay() === 0) yest.setDate(yest.getDate() - 1);
+  yest.setUTCDate(yest.getUTCDate() - 1);
+  if (yest.getUTCDay() === 0) yest.setUTCDate(yest.getUTCDate() - 1); // skip Sunday
 
-  const dayStart = new Date(yest); dayStart.setHours(0, 0, 0, 0);
-  const dayEnd   = new Date(yest); dayEnd.setHours(23, 59, 59, 999);
-  const wd = dayStart.getDay();
+  const dayStart = new Date(yest); dayStart.setUTCHours(0, 0, 0, 0);
+  const dayEnd   = new Date(yest); dayEnd.setUTCHours(23, 59, 59, 999);
+  const wd = dayStart.getUTCDay();
   const weekStart = new Date(dayStart);
-  weekStart.setDate(dayStart.getDate() - (wd === 0 ? 6 : wd - 1));
-  const monthStart = new Date(dayStart.getFullYear(), dayStart.getMonth(), 1);
+  weekStart.setUTCDate(dayStart.getUTCDate() - (wd === 0 ? 6 : wd - 1));
+  const monthStart = new Date(Date.UTC(dayStart.getUTCFullYear(), dayStart.getUTCMonth(), 1));
 
   const fromTs = Math.floor(Math.min(weekStart.getTime(), monthStart.getTime()) / 1000);
   const toTs   = Math.floor(dayEnd.getTime() / 1000);
