@@ -218,6 +218,16 @@ document.querySelectorAll('.tab').forEach(btn => {
 
 render('daily');
 
+// Auto-refresh at 07:00 Tashkent (02:00 UTC) every day
+function scheduleAutoRefresh() {
+  const now  = new Date();
+  const next = new Date(now);
+  next.setUTCHours(2, 0, 0, 0);
+  if (next <= now) next.setUTCDate(next.getUTCDate() + 1);
+  setTimeout(() => { render(currentPeriod); scheduleAutoRefresh(); }, next - now);
+}
+scheduleAutoRefresh();
+
 // ─── Qarzdorlik ───────────────────────────────────────────────────────────────
 function debtRowClass(days) {
   if (days <= 1)  return 'row-darkred';
