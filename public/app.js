@@ -131,6 +131,7 @@ async function render(period) {
     card('Kiruvchi (javob)',      stat.incoming_answered,     '', 'green') +
     card('Chiquvchi (javob)',     stat.outgoing_answered,     '', 'green') +
     card("O'tkazib yuborilgan",   stat.missed_clients,        '', 'red')   +
+    card('Qayta chiqilgan',       stat.recalled_clients,      '', 'green') +
     card('Qayta chiqilmagan',     stat.not_recalled_clients,  '', 'red')   +
     card("O'rtacha qayta aloqa",  stat.avg_recall_minutes, 'daqiqa', '');
 
