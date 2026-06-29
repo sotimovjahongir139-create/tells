@@ -333,12 +333,19 @@ async function runSync() {
   yest.setUTCDate(yest.getUTCDate() - 1);
   if (yest.getUTCDay() === 0) yest.setUTCDate(yest.getUTCDate() - 1); // skip Sunday
 
-  const dayStart = new Date(yest); dayStart.setUTCHours(0, 0, 0, 0);
-  const dayEnd   = new Date(yest); dayEnd.setUTCHours(23, 59, 59, 999);
-  const wd = dayStart.getUTCDay();
-  const weekStart = new Date(dayStart);
-  weekStart.setUTCDate(dayStart.getUTCDate() - (wd === 0 ? 6 : wd - 1));
-  const monthStart = new Date(Date.UTC(dayStart.getUTCFullYear(), dayStart.getUTCMonth(), 1));
+  // All boundaries in Tashkent time (UTC+5). yest.getUTCDate/Month/FullYear() == Tashkent calendar date.
+  const TZ_OFF_MS = TZ * 3600 * 1000; // TZ=5 defined globally
+  const Y = yest.getUTCFullYear(), Mo = yest.getUTCMonth(), D = yest.getUTCDate();
+  const dayStart   = new Date(Date.UTC(Y, Mo, D,     -TZ, 0, 0, 0));   // TZ midnight
+  const dayEnd     = new Date(Date.UTC(Y, Mo, D + 1, -TZ, 0, 0, -1)); // TZ end of day
+  const wd         = yest.getUTCDay();
+  const daysToMon  = wd === 0 ? 6 : wd - 1;
+  const weekStart  = new Date(dayStart.getTime() - daysToMon * 86400000);
+  const monthStart = new Date(Date.UTC(Y, Mo, 1, -TZ, 0, 0, 0));
+  // fmtKey: add TZ offset back so the ISO string shows the correct Tashkent calendar date
+  const fmtKey   = dt => new Date(dt.getTime() + TZ_OFF_MS).toISOString().slice(0, 10);
+  const weekEnd  = new Date(dayEnd.getTime()  + (6 - daysToMon) * 86400000);
+  const monthEnd = new Date(Date.UTC(Y, Mo + 1, 1, -TZ, 0, 0, -1));
 
   const fromTs = Math.floor(Math.min(weekStart.getTime(), monthStart.getTime()) / 1000);
   const toTs   = Math.floor(dayEnd.getTime() / 1000);
@@ -358,14 +365,11 @@ async function runSync() {
     const wSt = calcStats(recs, ts(weekStart), ts(dayEnd));
     const mSt = calcStats(recs, ts(monthStart),ts(dayEnd));
 
-    const fmt = dt => dt.toISOString().slice(0, 10);
-    const weekEnd  = new Date(weekStart);  weekEnd.setDate(weekStart.getDate() + 6);
-    const monthEnd = new Date(monthStart.getFullYear(), monthStart.getMonth() + 1, 0);
-    await upsert('amo_call_daily_stats',   'stat_date',  fmt(dayStart),   managerName, dSt);
-    await upsert('amo_call_weekly_stats',  'stat_week',  fmt(weekStart),  managerName, wSt,
-                 { period_start: fmt(weekStart),  period_end: fmt(weekEnd) });
-    await upsert('amo_call_monthly_stats', 'stat_month', fmt(monthStart), managerName, mSt,
-                 { period_start: fmt(monthStart), period_end: fmt(monthEnd) });
+    await upsert('amo_call_daily_stats',   'stat_date',  fmtKey(dayStart),   managerName, dSt);
+    await upsert('amo_call_weekly_stats',  'stat_week',  fmtKey(weekStart),  managerName, wSt,
+                 { period_start: fmtKey(weekStart),  period_end: fmtKey(weekEnd) });
+    await upsert('amo_call_monthly_stats', 'stat_month', fmtKey(monthStart), managerName, mSt,
+                 { period_start: fmtKey(monthStart), period_end: fmtKey(monthEnd) });
   }
 
   const dur = Date.now() - t0;
