@@ -192,14 +192,14 @@ def build_records(events, notes):
 # HISOB-KITOB
 # ══════════════════════════════════════════════════════════════
 def calc(records):
-    hour_sets   = {label: set() for label, _, _ in HOUR_SLOTS}
-    missed      = set()
-    recld       = set()
-    missed_time = {}
-    recall_gaps = []
-    in_a        = 0
-    out_a       = 0
-    out_recall  = 0
+    hour_sets    = {label: set() for label, _, _ in HOUR_SLOTS}
+    recall_gaps  = []
+    in_a         = 0
+    out_a        = 0
+    out_recall   = 0
+
+    contact_state = {}   # cid -> None | "missed" | "recalled" | "answered"
+    missed_time   = {}   # cid -> birinchi/yangilangan missed timestamp
 
     def add_to_hour(cid, ts):
         h = from_ts(ts).hour
@@ -215,36 +215,41 @@ def calc(records):
         ts  = r["created_at"]
 
         add_to_hour(cid, ts)
+        state = contact_state.get(cid)
 
         if d == "inbound":
             if dur == 0 or dur == -1:
-                if cid in recld:
-                    recld.discard(cid)
-                missed.add(cid)
-                if cid not in missed_time:
+                if state is None or state == "answered":
+                    contact_state[cid] = "missed"
+                    missed_time[cid]   = ts
+                elif state == "missed":
                     missed_time[cid] = ts
-            elif dur > 0:
-                if cid in missed:
-                    missed.discard(cid)
+                elif state == "recalled":
+                    contact_state[cid] = "missed"
+                    missed_time[cid]   = ts
+            else:
+                if state is None or state == "answered":
+                    in_a += 1
+                    contact_state[cid] = "answered"
+                elif state in ("missed", "recalled"):
+                    contact_state[cid] = "answered"
                     missed_time.pop(cid, None)
-                in_a += 1
 
         elif d == "outbound":
             if dur > 0:
-                if cid in missed:
-                    recld.add(cid)
-                    missed.discard(cid)
+                if state == "missed":
+                    contact_state[cid] = "recalled"
+                    out_recall += 1
                     if cid in missed_time:
                         missed_ts = missed_time.pop(cid)
-                        gap_min = round((ts - missed_ts) / 60, 1)
+                        gap_min   = round((ts - missed_ts) / 60, 1)
                         if 0 < gap_min <= 600:
                             recall_gaps.append(gap_min)
-                    out_recall += 1
                 else:
                     out_a += 1
 
-    not_recalled = len(missed)
-    recalled     = len(recld)
+    not_recalled = sum(1 for s in contact_state.values() if s == "missed")
+    recalled     = sum(1 for s in contact_state.values() if s == "recalled")
     missed_total = not_recalled + recalled
     total        = in_a + out_a + out_recall + missed_total
 
