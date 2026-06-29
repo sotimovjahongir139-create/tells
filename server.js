@@ -268,7 +268,7 @@ function calcStats(records, fromTs, toTs) {
       if (missed.has(cid)) {
         outR++;
         recalled.add(cid); missed.delete(cid);
-        if (cid in missedAt) { gaps.push((ts - missedAt[cid]) / 60); delete missedAt[cid]; }
+        if (cid in missedAt) { const g = (ts - missedAt[cid]) / 60; if (g > 0 && g <= 600) gaps.push(g); delete missedAt[cid]; }
       } else {
         outA++;
       }
