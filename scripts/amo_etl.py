@@ -149,7 +149,7 @@ def calc_stats(records):
     missed = set()
     recalled = set()
     recall_gaps_mins = []
-    in_a = out_a = 0
+    in_a = out_a = out_r = 0
 
     sorted_r = sorted(records, key=lambda r: r["created_at"])
     for r in sorted_r:
@@ -176,20 +176,23 @@ def calc_stats(records):
                 if slot:
                     hours[slot] += 1
         elif d == "outbound" and dur > 0:
-            out_a += 1
             if slot:
                 hours[slot] += 1
             if cid in missed:
+                # Recall call: manager called back a missed contact
+                out_r += 1
                 recalled.add(cid)
                 missed.discard(cid)
                 if cid in missed_first_time:
                     recall_gaps_mins.append((ts - missed_first_time.pop(cid)) / 60)
+            else:
+                out_a += 1
 
     total_missed = len(missed) + len(recalled)
     rc = len(recalled)
     nrc = len(missed)
-    total = in_a + out_a + total_missed
-    answer_rate = round((in_a + out_a) / total * 100) if total else 0
+    total = in_a + out_a + out_r + total_missed
+    answer_rate = round((in_a + out_a + out_r) / total * 100) if total else 0
     recall_rate = round(rc / total_missed * 100) if total_missed else 0
     no_recall_pct = round(nrc / total_missed * 100) if total_missed else 0
     avg_recall = (
@@ -201,6 +204,7 @@ def calc_stats(records):
         "total": total,
         "incoming": in_a,
         "outgoing": out_a,
+        "out_recall": out_r,
         "missed": total_missed,
         "recalled": rc,
         "not_recalled": nrc,
@@ -217,15 +221,17 @@ def upsert_daily(cur, stat_date, manager_name, st):
     cur.execute("""
         INSERT INTO amo_call_daily_stats
             (stat_date, manager_name, total_calls, incoming_answered, outgoing_answered,
+             out_recall_clients,
              missed_clients, recalled_clients, not_recalled_clients,
              answer_rate, recall_rate, no_recall_pct, avg_recall_minutes,
              h_09_11, h_11_13, h_13_15, h_15_17, h_17_19, h_19_21, h_21_23)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
                 %s, %s, %s, %s, %s, %s, %s)
         ON CONFLICT (stat_date, manager_name) DO UPDATE SET
             total_calls = EXCLUDED.total_calls,
             incoming_answered = EXCLUDED.incoming_answered,
             outgoing_answered = EXCLUDED.outgoing_answered,
+            out_recall_clients = EXCLUDED.out_recall_clients,
             missed_clients = EXCLUDED.missed_clients,
             recalled_clients = EXCLUDED.recalled_clients,
             not_recalled_clients = EXCLUDED.not_recalled_clients,
@@ -239,7 +245,7 @@ def upsert_daily(cur, stat_date, manager_name, st):
             h_21_23 = EXCLUDED.h_21_23
     """, (
         stat_date, manager_name,
-        st["total"], st["incoming"], st["outgoing"],
+        st["total"], st["incoming"], st["outgoing"], st["out_recall"],
         st["missed"], st["recalled"], st["not_recalled"],
         st["answer_rate"], st["recall_rate"], st["no_recall_pct"], st["avg_recall_minutes"],
         h.get("09:00-11:00", 0), h.get("11:00-13:00", 0), h.get("13:00-15:00", 0),
@@ -255,10 +261,11 @@ def upsert_weekly(cur, week_start, manager_name, st):
         INSERT INTO amo_call_weekly_stats
             (stat_week, manager_name, period_start, period_end,
              total_calls, incoming_answered, outgoing_answered,
+             out_recall_clients,
              missed_clients, recalled_clients, not_recalled_clients,
              answer_rate, recall_rate, no_recall_pct, avg_recall_minutes,
              h_09_11, h_11_13, h_13_15, h_15_17, h_17_19, h_19_21, h_21_23)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
                 %s, %s, %s, %s, %s, %s, %s, %s, %s)
         ON CONFLICT (stat_week, manager_name) DO UPDATE SET
             period_start = EXCLUDED.period_start,
@@ -266,6 +273,7 @@ def upsert_weekly(cur, week_start, manager_name, st):
             total_calls = EXCLUDED.total_calls,
             incoming_answered = EXCLUDED.incoming_answered,
             outgoing_answered = EXCLUDED.outgoing_answered,
+            out_recall_clients = EXCLUDED.out_recall_clients,
             missed_clients = EXCLUDED.missed_clients,
             recalled_clients = EXCLUDED.recalled_clients,
             not_recalled_clients = EXCLUDED.not_recalled_clients,
@@ -279,7 +287,7 @@ def upsert_weekly(cur, week_start, manager_name, st):
             h_21_23 = EXCLUDED.h_21_23
     """, (
         week_start, manager_name, week_start, week_end,
-        st["total"], st["incoming"], st["outgoing"],
+        st["total"], st["incoming"], st["outgoing"], st["out_recall"],
         st["missed"], st["recalled"], st["not_recalled"],
         st["answer_rate"], st["recall_rate"], st["no_recall_pct"], st["avg_recall_minutes"],
         h.get("09:00-11:00", 0), h.get("11:00-13:00", 0), h.get("13:00-15:00", 0),
@@ -295,10 +303,11 @@ def upsert_monthly(cur, month_start, manager_name, st):
         INSERT INTO amo_call_monthly_stats
             (stat_month, manager_name, period_start, period_end,
              total_calls, incoming_answered, outgoing_answered,
+             out_recall_clients,
              missed_clients, recalled_clients, not_recalled_clients,
              answer_rate, recall_rate, no_recall_pct, avg_recall_minutes,
              h_09_11, h_11_13, h_13_15, h_15_17, h_17_19, h_19_21, h_21_23)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
                 %s, %s, %s, %s, %s, %s, %s, %s, %s)
         ON CONFLICT (stat_month, manager_name) DO UPDATE SET
             period_start = EXCLUDED.period_start,
@@ -306,6 +315,7 @@ def upsert_monthly(cur, month_start, manager_name, st):
             total_calls = EXCLUDED.total_calls,
             incoming_answered = EXCLUDED.incoming_answered,
             outgoing_answered = EXCLUDED.outgoing_answered,
+            out_recall_clients = EXCLUDED.out_recall_clients,
             missed_clients = EXCLUDED.missed_clients,
             recalled_clients = EXCLUDED.recalled_clients,
             not_recalled_clients = EXCLUDED.not_recalled_clients,
@@ -319,7 +329,7 @@ def upsert_monthly(cur, month_start, manager_name, st):
             h_21_23 = EXCLUDED.h_21_23
     """, (
         month_start, manager_name, month_start, month_end,
-        st["total"], st["incoming"], st["outgoing"],
+        st["total"], st["incoming"], st["outgoing"], st["out_recall"],
         st["missed"], st["recalled"], st["not_recalled"],
         st["answer_rate"], st["recall_rate"], st["no_recall_pct"], st["avg_recall_minutes"],
         h.get("09:00-11:00", 0), h.get("11:00-13:00", 0), h.get("13:00-15:00", 0),

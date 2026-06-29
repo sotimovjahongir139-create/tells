@@ -127,13 +127,14 @@ async function render(period) {
 
   // Cards
   document.getElementById('main-cards').innerHTML =
-    card("Jami qo'ng'iroqlar",   stat.total_calls,           '', 'blue')  +
-    card('Kiruvchi (javob)',      stat.incoming_answered,     '', 'green') +
-    card('Chiquvchi (javob)',     stat.outgoing_answered,     '', 'green') +
-    card("O'tkazib yuborilgan",   stat.missed_clients,        '', 'red')   +
-    card('Qayta chiqilgan',       stat.recalled_clients,      '', 'green') +
-    card('Qayta chiqilmagan',     stat.not_recalled_clients,  '', 'red')   +
-    card("O'rtacha qayta aloqa",  stat.avg_recall_minutes, 'daqiqa', '');
+    card("Jami qo'ng'iroqlar",        stat.total_calls,           '', 'blue')  +
+    card('Kiruvchi (javob)',           stat.incoming_answered,     '', 'green') +
+    card('Chiquvchi (javob)',          stat.outgoing_answered,     '', 'green') +
+    card('Qayta chiqilgan (chiquvchi)',stat.out_recall_clients,    '', 'green') +
+    card("O'tkazib yuborilgan",        stat.missed_clients,        '', 'red')   +
+    card('Qayta aloqa qilindi',        stat.recalled_clients,      '', 'green') +
+    card('Qayta chiqilmagan',          stat.not_recalled_clients,  '', 'red')   +
+    card("O'rtacha qayta aloqa",       stat.avg_recall_minutes, 'daqiqa', '');
 
   // Gauges
   document.getElementById('gauges').innerHTML =

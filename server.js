@@ -27,7 +27,8 @@ const pool = new Pool({
 async function initDb() {
   const cols = `
     total_calls INT DEFAULT 0, incoming_answered INT DEFAULT 0,
-    outgoing_answered INT DEFAULT 0, missed_clients INT DEFAULT 0,
+    outgoing_answered INT DEFAULT 0, out_recall_clients INT DEFAULT 0,
+    missed_clients INT DEFAULT 0,
     recalled_clients INT DEFAULT 0, not_recalled_clients INT DEFAULT 0,
     answer_rate FLOAT DEFAULT 0, recall_rate FLOAT DEFAULT 0,
     no_recall_pct FLOAT DEFAULT 0, avg_recall_minutes FLOAT DEFAULT 0,
@@ -67,6 +68,12 @@ async function initDb() {
   for (const [sql, name] of tables) {
     try { await pool.query(sql); console.log(`Table OK: ${name}`); }
     catch (e) { console.error(`Table FAIL: ${name}:`, e.message); }
+  }
+  // Migrate: add out_recall_clients column if missing
+  for (const t of ['amo_call_daily_stats','amo_call_weekly_stats','amo_call_monthly_stats']) {
+    try {
+      await pool.query(`ALTER TABLE ${t} ADD COLUMN IF NOT EXISTS out_recall_clients INT DEFAULT 0`);
+    } catch (e) { console.error(`Migrate ${t}:`, e.message); }
   }
 }
 
@@ -243,7 +250,7 @@ function calcStats(records, fromTs, toTs) {
                           .sort((a, b) => a.ts - b.ts);
   const hours = Object.fromEntries(SLOTS.map(([l]) => [l, 0]));
   const missedAt = {}, missed = new Set(), recalled = new Set(), gaps = [];
-  let inA = 0, outA = 0;
+  let inA = 0, outA = 0, outR = 0;
 
   for (const { cid, dir, dur, ts } of filtered) {
     const slot = slotFor(ts);
@@ -257,19 +264,23 @@ function calcStats(records, fromTs, toTs) {
         inA++; if (slot) hours[slot]++;
       }
     } else if (dir === 'outbound' && dur > 0) {
-      outA++; if (slot) hours[slot]++;
+      if (slot) hours[slot]++;
       if (missed.has(cid)) {
+        outR++;
         recalled.add(cid); missed.delete(cid);
         if (cid in missedAt) { gaps.push((ts - missedAt[cid]) / 60); delete missedAt[cid]; }
+      } else {
+        outA++;
       }
     }
   }
 
   const m = missed.size + recalled.size, rc = recalled.size, nrc = missed.size;
-  const total = inA + outA + m;
+  const total = inA + outA + outR + m;
   return {
-    total, incoming: inA, outgoing: outA, missed: m, recalled: rc, not_recalled: nrc,
-    answer_rate:        total ? Math.round((inA + outA) / total * 100) : 0,
+    total, incoming: inA, outgoing: outA, out_recall: outR,
+    missed: m, recalled: rc, not_recalled: nrc,
+    answer_rate:        total ? Math.round((inA + outA + outR) / total * 100) : 0,
     recall_rate:        m ? Math.round(rc / m * 100) : 0,
     no_recall_pct:      m ? Math.round(nrc / m * 100) : 0,
     avg_recall_minutes: gaps.length
@@ -282,27 +293,27 @@ async function upsert(table, uniqueCol, uniqueVal, managerName, st, extra = {}) 
   const h = st.hours;
   const extraKeys = Object.keys(extra);
   const extraColsSql   = extraKeys.length ? ', ' + extraKeys.join(', ') : '';
-  const extraParamsSql = extraKeys.map((_, i) => `$${20 + i}`).join(', ');
+  const extraParamsSql = extraKeys.map((_, i) => `$${21 + i}`).join(', ');
   const extraPrefixSql = extraKeys.length ? ', ' + extraParamsSql : '';
 
   await pool.query(`
     INSERT INTO ${table}
       (${uniqueCol}, manager_name,
-       total_calls, incoming_answered, outgoing_answered,
+       total_calls, incoming_answered, outgoing_answered, out_recall_clients,
        missed_clients, recalled_clients, not_recalled_clients,
        answer_rate, recall_rate, no_recall_pct, avg_recall_minutes,
        h_09_11, h_11_13, h_13_15, h_15_17, h_17_19, h_19_21, h_21_23${extraColsSql})
-    VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,
-            $13,$14,$15,$16,$17,$18,$19${extraPrefixSql})
+    VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,
+            $14,$15,$16,$17,$18,$19,$20${extraPrefixSql})
     ON CONFLICT (${uniqueCol}, manager_name) DO UPDATE SET
-      total_calls=$3, incoming_answered=$4, outgoing_answered=$5,
-      missed_clients=$6, recalled_clients=$7, not_recalled_clients=$8,
-      answer_rate=$9, recall_rate=$10, no_recall_pct=$11, avg_recall_minutes=$12,
-      h_09_11=$13, h_11_13=$14, h_13_15=$15,
-      h_15_17=$16, h_17_19=$17, h_19_21=$18, h_21_23=$19
+      total_calls=$3, incoming_answered=$4, outgoing_answered=$5, out_recall_clients=$6,
+      missed_clients=$7, recalled_clients=$8, not_recalled_clients=$9,
+      answer_rate=$10, recall_rate=$11, no_recall_pct=$12, avg_recall_minutes=$13,
+      h_09_11=$14, h_11_13=$15, h_13_15=$16,
+      h_15_17=$17, h_17_19=$18, h_19_21=$19, h_21_23=$20
   `, [
     uniqueVal, managerName,
-    st.total, st.incoming, st.outgoing,
+    st.total, st.incoming, st.outgoing, st.out_recall,
     st.missed, st.recalled, st.not_recalled,
     st.answer_rate, st.recall_rate, st.no_recall_pct, st.avg_recall_minutes,
     h['09:00-11:00']||0, h['11:00-13:00']||0, h['13:00-15:00']||0,
