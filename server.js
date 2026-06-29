@@ -249,33 +249,49 @@ function calcStats(records, fromTs, toTs) {
   const filtered = records.filter(r => r.ts >= fromTs && r.ts <= toTs)
                           .sort((a, b) => a.ts - b.ts);
   const hours = Object.fromEntries(SLOTS.map(([l]) => [l, 0]));
-  const missedAt = {}, missed = new Set(), recalled = new Set(), gaps = [];
+  const contactState = {}, missedAt = {}, gaps = [];
   let inA = 0, outA = 0, outR = 0;
 
   for (const { cid, dir, dur, ts } of filtered) {
     const slot = slotFor(ts);
+    if (slot) hours[slot]++;
+    const state = contactState[cid];
+
     if (dir === 'inbound') {
       if (dur <= 0) {
-        missed.add(cid); recalled.delete(cid);
-        if (!(cid in missedAt)) missedAt[cid] = ts;
-        if (slot) hours[slot]++;
+        // missed call
+        if (state === undefined || state === 'answered' || state === 'recalled') {
+          contactState[cid] = 'missed';
+          missedAt[cid] = ts;
+        } else if (state === 'missed') {
+          missedAt[cid] = ts; // update to latest missed time
+        }
       } else {
-        missed.delete(cid); delete missedAt[cid];
-        inA++; if (slot) hours[slot]++;
+        // answered inbound
+        if (state === undefined || state === 'answered') {
+          inA++;
+        }
+        contactState[cid] = 'answered';
+        delete missedAt[cid];
       }
     } else if (dir === 'outbound' && dur > 0) {
-      if (slot) hours[slot]++;
-      if (missed.has(cid)) {
+      if (state === 'missed') {
         outR++;
-        recalled.add(cid); missed.delete(cid);
-        if (cid in missedAt) { const g = (ts - missedAt[cid]) / 60; if (g > 0 && g <= 600) gaps.push(g); delete missedAt[cid]; }
+        contactState[cid] = 'recalled';
+        if (cid in missedAt) {
+          const g = (ts - missedAt[cid]) / 60;
+          if (g > 0 && g <= 600) gaps.push(g);
+          delete missedAt[cid];
+        }
       } else {
         outA++;
       }
     }
   }
 
-  const m = missed.size + recalled.size, rc = recalled.size, nrc = missed.size;
+  const nrc = Object.values(contactState).filter(s => s === 'missed').length;
+  const rc  = Object.values(contactState).filter(s => s === 'recalled').length;
+  const m   = nrc + rc;
   const total = inA + outA + outR + m;
   return {
     total, incoming: inA, outgoing: outA, out_recall: outR,
