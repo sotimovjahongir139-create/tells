@@ -294,7 +294,7 @@ function calcStats(records, fromTs, toTs) {
   const m   = nrc + rc;
   const total = inA + outA + outR + m;
   return {
-    total, incoming: inA, outgoing: outA, out_recall: outR,
+    total, incoming: inA, outgoing: outA + outR, out_recall: outR,
     missed: m, recalled: rc, not_recalled: nrc,
     answer_rate:        total ? Math.round((inA + outA + outR) / total * 100) : 0,
     recall_rate:        m ? Math.round(rc / m * 100) : 0,

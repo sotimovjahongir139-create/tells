@@ -263,7 +263,7 @@ def calc(records):
     return {
         "total":              total,
         "incoming":           in_a,
-        "outgoing":           out_a,
+        "outgoing":           out_a + out_recall,
         "out_recall":         out_recall,
         "missed":             missed_total,
         "recalled":           recalled,
