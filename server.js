@@ -5,7 +5,6 @@ const express = require('express');
 const { Pool }  = require('pg');
 const path      = require('path');
 const https     = require('https');
-const { randomUUID } = require('crypto');
 
 const app  = express();
 const PORT = parseInt(process.env.PORT || '5002', 10);
@@ -17,7 +16,7 @@ const SYNC_SECRET      = process.env.SYNC_SECRET    || '';
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false },
+  ssl: process.env.DB_SSL !== 'false' ? { rejectUnauthorized: false } : false,
   max: 5,
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 10000,
@@ -390,9 +389,9 @@ async function runSync() {
 
   const dur = Date.now() - t0;
   await pool.query(
-    `INSERT INTO amo_sync_logs (id,synced_at,status,manager,events_count,duration_ms)
-     VALUES ($4,NOW(),'success',$1,$2,$3)`,
-    [Object.values(targetIds)[0], events.length, dur, randomUUID()]
+    `INSERT INTO amo_sync_logs (synced_at,status,manager,events_count,duration_ms)
+     VALUES (NOW(),'success',$1,$2,$3)`,
+    [Object.values(targetIds)[0], events.length, dur]
   );
   return { eventsCount: events.length, managers: Object.values(targetIds), durationMs: dur };
 }
@@ -406,9 +405,9 @@ app.post('/api/sync', async (req, res) => {
   } catch (e) {
     const msg = e.message || String(e);
     pool.query(
-      `INSERT INTO amo_sync_logs (id,synced_at,status,error_msg,duration_ms)
-       VALUES ($3,NOW(),'error',$1,$2)`,
-      [msg, 0, randomUUID()]
+      `INSERT INTO amo_sync_logs (synced_at,status,error_msg,duration_ms)
+       VALUES (NOW(),'error',$1,$2)`,
+      [msg, 0]
     ).catch(() => {});
     res.status(500).json({ error: msg });
   }
@@ -453,9 +452,9 @@ function autoSyncOnce(label) {
     .catch(e => {
       console.error(`Auto-sync ${label} error:`, e.message);
       pool.query(
-        `INSERT INTO amo_sync_logs (id,synced_at,status,error_msg,duration_ms)
-         VALUES ($2,NOW(),'error',$1,0)`,
-        [e.message, randomUUID()]
+        `INSERT INTO amo_sync_logs (synced_at,status,error_msg,duration_ms)
+         VALUES (NOW(),'error',$1,0)`,
+        [e.message]
       ).catch(err => console.error('sync_logs write failed:', err.message));
     });
 }
