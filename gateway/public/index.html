@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Arkon — Tizimni tanlang</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: #0a0f1e;
+    color: #f9fafb;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1.5rem;
+  }
+  .wrap { max-width: 720px; width: 100%; text-align: center; }
+  h1 { font-size: 1.6rem; font-weight: 700; margin-bottom: 0.5rem; }
+  p.sub { color: #9ca3af; font-size: 0.95rem; margin-bottom: 2.5rem; }
+  .cards {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.25rem;
+  }
+  @media (max-width: 560px) {
+    .cards { grid-template-columns: 1fr; }
+  }
+  a.card {
+    display: block;
+    background: #111827;
+    border: 1px solid #1f2937;
+    border-radius: 1rem;
+    padding: 2rem 1.5rem;
+    text-decoration: none;
+    color: inherit;
+    transition: border-color 0.15s, transform 0.15s;
+  }
+  a.card:hover {
+    border-color: #3b82f6;
+    transform: translateY(-2px);
+  }
+  .icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 0.75rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 1rem;
+    font-size: 1.4rem;
+    font-weight: 700;
+  }
+  .icon.ai { background: #1e3a5f; color: #60a5fa; }
+  .icon.calls { background: #14532d; color: #4ade80; }
+  .card h2 { font-size: 1.15rem; font-weight: 700; margin-bottom: 0.4rem; }
+  .card p { font-size: 0.85rem; color: #9ca3af; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Arkon</h1>
+  <p class="sub">Tizimni tanlang</p>
+  <div class="cards">
+    <a class="card" href="/ai-sales/">
+      <div class="icon ai">AI</div>
+      <h2>AI SALES</h2>
+      <p>AI orqali sotuv qo'ng'iroqlarini tahlil qilish</p>
+    </a>
+    <a class="card" href="/calls/">
+      <div class="icon calls">☎</div>
+      <h2>CALLS</h2>
+      <p>Qo'ng'iroqlar holati</p>
+    </a>
+  </div>
+</div>
+</body>
+</html>
