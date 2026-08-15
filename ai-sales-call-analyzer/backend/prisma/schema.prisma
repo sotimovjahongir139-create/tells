@@ -1,0 +1,146 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(uuid())
+  username     String   @unique
+  passwordHash String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+// amoCRM's /notes endpoints don't reliably honor created_at range filters
+// (confirmed empirically), so incremental sync tracks progress by note id
+// instead — note ids are monotonically increasing, dates are not trustworthy
+// for pagination cutoffs here.
+model SyncState {
+  id         String   @id @default(uuid())
+  key        String   @unique
+  lastNoteId Int      @default(0)
+  updatedAt  DateTime @updatedAt
+}
+
+model Salesperson {
+  id            String   @id @default(uuid())
+  name          String
+  amocrmUserId  String   @unique
+  active        Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  calls Call[]
+}
+
+enum CallDirection {
+  IN
+  OUT
+}
+
+enum AnalysisStatus {
+  NOT_ANALYZED
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+model Call {
+  id             String         @id @default(uuid())
+  amocrmCallId   String         @unique
+  salespersonId  String
+  salesperson    Salesperson    @relation(fields: [salespersonId], references: [id])
+
+  customerName   String?
+  customerPhone  String?
+  direction      CallDirection
+
+  startedAt      DateTime
+  durationSeconds Int           @default(0)
+  recordingUrl   String?
+
+  analysisStatus AnalysisStatus @default(NOT_ANALYZED)
+  analysisError  String?
+
+  analysis       CallAnalysis?
+
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  @@index([startedAt])
+  @@index([salespersonId])
+  @@index([analysisStatus])
+  @@index([amocrmCallId])
+}
+
+model CallAnalysis {
+  id            String   @id @default(uuid())
+  callId        String   @unique
+  call          Call     @relation(fields: [callId], references: [id])
+
+  overallScore  Int
+
+  communication       Int
+  needDiscovery       Int
+  productPresentation Int
+  objectionHandling   Int
+  closing             Int
+
+  summary            String
+  customerNeed       String?
+  customerObjection  String?
+  customerIntent     String?
+
+  strengths   Json
+  transcript  Json
+  rawResponse Json
+
+  mistakes        CallMistake[]
+  recommendations Recommendation[]
+
+  createdAt DateTime @default(now())
+
+  @@index([callId])
+}
+
+enum MistakeSeverity {
+  low
+  medium
+  high
+}
+
+model CallMistake {
+  id             String          @id @default(uuid())
+  callAnalysisId String
+  callAnalysis   CallAnalysis    @relation(fields: [callAnalysisId], references: [id])
+
+  category       String
+  severity       MistakeSeverity
+  description    String
+  evidence       String
+  whyItIsWrong   String
+  recommendation String
+  betterPhrase   String
+
+  createdAt DateTime @default(now())
+
+  @@index([callAnalysisId])
+}
+
+model Recommendation {
+  id             String       @id @default(uuid())
+  callAnalysisId String
+  callAnalysis   CallAnalysis @relation(fields: [callAnalysisId], references: [id])
+
+  problem      String
+  whatToDo     String
+  betterPhrase String
+
+  createdAt DateTime @default(now())
+
+  @@index([callAnalysisId])
+}
