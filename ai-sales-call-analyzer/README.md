@@ -99,15 +99,41 @@ npm run dev            # starts on port 5173
 
 Open `http://localhost:5173` — you'll land on the login page first.
 
-## Production build
+## Production deployment (behind the gateway)
 
-```bash
-cd frontend && npm run build   # outputs frontend/dist, serve as static files
-cd backend && npm start        # run behind a process manager (pm2, systemd, etc.)
-```
+This app is deployed alongside the existing CALLS app in the same repo/VPS, behind a
+`gateway/` reverse proxy (see `../gateway/README` notes below) that serves it under
+`/ai-sales/`. The frontend build already targets that path (`vite.config.js` sets
+`base: '/ai-sales/'` in production, `.env.production` points the API client at
+`/ai-sales/api`) — no per-deploy config needed for that part.
 
-Point `FRONTEND_URL` (backend) and `VITE_BACKEND_URL` (frontend) at your real domains,
-and run `npx prisma migrate deploy` instead of `migrate dev` in production.
+`.github/workflows/deploy.yml` handles the build/restart automatically on every push
+to `main`, **but only if this app has been provisioned on the VPS first** — it checks
+for `backend/.env` and skips starting the AI Sales backend cleanly if it's missing, so
+an unprovisioned AI Sales setup never breaks the CALLS deploy.
+
+**One-time VPS setup required** (I can't do this remotely — no SSH access to your
+server):
+
+1. Create the database and role in the VPS's Postgres (separate from CALLS' database):
+   ```sql
+   CREATE USER ai_sales_user WITH PASSWORD '...';
+   CREATE DATABASE ai_sales_call_analyzer OWNER ai_sales_user;
+   ```
+2. Place a real `backend/.env` on the server at
+   `/root/calls/ai-sales-call-analyzer/backend/.env` (same shape as `.env.example`,
+   with real `DATABASE_URL`, `JWT_SECRET`, `AMOCRM_DOMAIN`, `AMOCRM_ACCESS_TOKEN`,
+   `GEMINI_API_KEY`, `ASADBEK_AMOCRM_USER_ID`). This file is gitignored — it stays on
+   the server and survives `git reset --hard` deploys.
+3. Push to `main` (or just wait for the next deploy) — the pipeline will install deps,
+   run `prisma migrate deploy`, and start the `ai-sales-backend` pm2 process.
+4. Seed the admin user once, over SSH:
+   ```bash
+   cd /root/calls/ai-sales-call-analyzer/backend
+   SEED_ADMIN_USERNAME=admin SEED_ADMIN_PASSWORD='...' node scripts/seed.js
+   ```
+
+After that, `https://calls.arkon-group.uz/ai-sales/` is live.
 
 ## API summary
 

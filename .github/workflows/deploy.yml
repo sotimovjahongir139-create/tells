@@ -24,28 +24,68 @@ jobs:
             cd /root/calls
             git fetch origin
             git reset --hard origin/main
-            npm install --omit=dev
 
+            # --- CALLS (unchanged) ---
+            npm install --omit=dev
             pm2 delete calls 2>/dev/null || true
             pm2 start ecosystem.config.js
-            pm2 save
             sleep 3
-
-            # Verify app is up on port 5002
             curl -sf http://127.0.0.1:5002/version
+            echo "=== CALLS OK ==="
 
-            # Fix nginx: ensure proxy_pass uses 127.0.0.1:5002 (avoids IPv6 ::1 mismatch)
+            # --- Gateway (selection screen + reverse proxy) ---
+            cd /root/calls/gateway
+            npm install --omit=dev
+            pm2 delete gateway 2>/dev/null || true
+            pm2 start ecosystem.config.js
+            echo "=== gateway started ==="
+
+            # --- AI Sales backend: only if this server has been provisioned with
+            # its own .env (own DATABASE_URL/JWT_SECRET/AMOCRM/GEMINI config) and
+            # its own Postgres database already created. Skips cleanly otherwise
+            # so an unprovisioned AI Sales setup never breaks a CALLS deploy. ---
+            cd /root/calls/ai-sales-call-analyzer/backend
+            if [ -f .env ]; then
+              npm install --omit=dev
+              npx prisma generate
+              npx prisma migrate deploy
+              pm2 delete ai-sales-backend 2>/dev/null || true
+              pm2 start ecosystem.config.js
+              echo "=== AI Sales backend started ==="
+            else
+              echo "SKIP: ai-sales-call-analyzer/backend/.env not found on this server — AI Sales backend not started."
+            fi
+
+            # --- AI Sales frontend production build (static, no secrets needed) ---
+            cd /root/calls/ai-sales-call-analyzer/frontend
+            npm install
+            npm run build
+            echo "=== AI Sales frontend built ==="
+
+            pm2 save
+            sleep 2
+
+            # --- nginx: point the public entry at the gateway only if it's
+            # actually up; otherwise fall back to CALLS directly so a gateway
+            # problem can never take the public site down. ---
+            TARGET_PORT=5002
+            if curl -sf http://127.0.0.1:5000/ >/dev/null 2>&1; then
+              TARGET_PORT=5000
+            else
+              echo "WARN: gateway not responding on 5000, keeping nginx pointed at CALLS directly."
+            fi
+
             for cfg in /etc/nginx/sites-enabled/* /etc/nginx/conf.d/*.conf; do
               [ -f "$cfg" ] || continue
               if grep -q "proxy_pass" "$cfg"; then
-                sed -i 's|proxy_pass http://localhost:[0-9]*|proxy_pass http://127.0.0.1:5002|g' "$cfg"
-                sed -i 's|proxy_pass http://127\.0\.0\.1:[0-9]*|proxy_pass http://127.0.0.1:5002|g' "$cfg"
-                echo "Patched nginx config: $cfg"
+                sed -i "s|proxy_pass http://localhost:[0-9]*|proxy_pass http://127.0.0.1:$TARGET_PORT|g" "$cfg"
+                sed -i "s|proxy_pass http://127\.0\.0\.1:[0-9]*|proxy_pass http://127.0.0.1:$TARGET_PORT|g" "$cfg"
+                echo "Patched nginx config: $cfg -> 127.0.0.1:$TARGET_PORT"
               fi
             done
             nginx -t && nginx -s reload
-            echo "=== nginx reloaded ==="
+            echo "=== nginx reloaded, public entry -> 127.0.0.1:$TARGET_PORT ==="
 
             sleep 1
-            curl -sf http://127.0.0.1:5002/version
+            curl -sf http://127.0.0.1:$TARGET_PORT/ >/dev/null
             echo "Deploy OK"
